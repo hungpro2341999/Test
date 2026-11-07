@@ -1,0 +1,1844 @@
+<title>Sừng Chiến</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Be+Vietnam+Pro:wght@400;600;800&display=swap">
+<style>
+/* Full-bleed 3D canvas, HUD pinned to the corners, one centered card for menus. Single dusk look by design. */
+:root {
+  --ink: #fff4e4;
+  --ink-dim: #d9c6b4;
+  --dusk: #24193a;
+  --panel: rgba(36, 24, 56, 0.86);
+  --line: rgba(255, 220, 180, 0.22);
+  --horn: #f2c14e;
+  --ember: #ff8a4c;
+  --danger: #ff5d6c;
+  --display: 'Bungee', Impact, 'Arial Black', sans-serif;
+  --body: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--dusk); color: var(--ink); font-family: var(--body); -webkit-user-select: none; user-select: none; touch-action: none; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+.hud { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 12px); left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; z-index: 5; }
+.hud-block { display: grid; gap: 2px; }
+.hud-label { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+.hud-value { font-family: var(--display); font-size: 26px; line-height: 1; color: var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,.35); font-variant-numeric: tabular-nums; }
+.pips { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; max-width: 50vw; margin-top: 4px; }
+.pip { width: 14px; height: 14px; border-radius: 50%; background: var(--ember); box-shadow: inset 0 -2px 0 rgba(0,0,0,.3); transition: transform .3s, opacity .3s; }
+.pip.gone { opacity: .25; transform: scale(.6); background: var(--ink-dim); }
+.hud-right { text-align: right; justify-items: end; }
+.mute { pointer-events: auto; margin-top: 8px; background: transparent; border: 1px solid var(--line); color: var(--ink-dim); font: 600 11px var(--body); letter-spacing: .1em; text-transform: uppercase; padding: 5px 9px; border-radius: 6px; cursor: pointer; }
+.mute:focus-visible, .btn:focus-visible { outline: 2px solid var(--horn); outline-offset: 3px; }
+
+.banner { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 6; }
+.banner span { font-family: var(--display); font-size: clamp(44px, 12vw, 110px); color: var(--horn); text-shadow: 0 5px 0 #6b2f1a, 0 12px 30px rgba(0,0,0,.5); letter-spacing: .02em; animation: bump .5s ease-out; }
+.banner-inner { display: grid; justify-items: center; gap: 4px; text-align: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.banner-inner b { font-family: var(--display); font-weight: 400; font-size: clamp(20px, 5vw, 34px); color: var(--ink); text-shadow: 0 3px 0 rgba(0,0,0,.45); letter-spacing: .04em; }
+.banner-inner b:empty { display: none; }
+@keyframes bump { from { transform: scale(1.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.overlay { position: fixed; inset: 0; display: grid; place-items: center; z-index: 10; background: radial-gradient(ellipse at center, rgba(20,12,34,.35), rgba(20,12,34,.75)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.card { width: min(440px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 28px 26px 22px; box-sizing: border-box; display: grid; gap: 14px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 30px 60px rgba(0,0,0,.4); }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--ember); }
+.card h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(38px, 10vw, 56px); line-height: .95; color: var(--horn); text-shadow: 0 4px 0 #6b2f1a; text-wrap: balance; }
+.card p.text { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink); max-width: 60ch; }
+.stats { display: flex; gap: 22px; flex-wrap: wrap; }
+.stat { display: grid; gap: 2px; }
+.stat b { font-family: var(--display); font-weight: 400; font-size: 24px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.btn { flex: 1 1 140px; font-family: var(--display); font-size: 18px; padding: 14px 18px; border-radius: 12px; border: 0; cursor: pointer; background: var(--horn); color: #3a1a0c; box-shadow: 0 4px 0 #a8701d; transition: transform .08s, box-shadow .08s; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #a8701d; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+.keys { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-dim); }
+kbd { font-family: var(--body); font-weight: 800; font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; color: var(--ink); }
+
+.pop { position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; font-family: var(--display); font-size: 22px; color: var(--ink); text-shadow: 0 3px 0 rgba(0,0,0,.45); white-space: nowrap; transform: translate(-50%, -50%); }
+
+.hint { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 50%; transform: translateX(-50%); font-size: 12.5px; color: var(--ink-dim); pointer-events: none; z-index: 5; white-space: nowrap; }
+
+.touch { display: none; }
+.is-touch .touch { display: block; }
+.is-touch .hint { display: none; }
+.meter { margin-top: 10px; display: grid; gap: 4px; width: min(180px, 40vw); }
+.meter-track { height: 10px; border-radius: 5px; background: rgba(255,244,228,.12); overflow: hidden; border: 1px solid var(--line); }
+.meter-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--horn), var(--ember) 70%, var(--danger)); border-radius: 5px; }
+.meter-speed { font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.touch-hint { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 50%; transform: translateX(-50%); font-size: 12.5px; color: var(--ink-dim); pointer-events: none; z-index: 5; white-space: nowrap; }
+#c { cursor: grab; }
+#c:active { cursor: grabbing; }
+.joy { position: fixed; left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(255,244,228,.10); border: 2px solid rgba(255,244,228,.35); z-index: 7; pointer-events: none; box-shadow: 0 0 0 6px rgba(36,24,56,.25); }
+.joy-knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: var(--horn); box-shadow: 0 4px 0 #a8701d, 0 6px 14px rgba(0,0,0,.35); }
+.spawn-btn { display: none; position: fixed; right: max(20px, calc(env(safe-area-inset-right, 0px) + 16px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 40px); width: 84px; height: 84px; border-radius: 50%; border: 0; background: var(--ember); color: #3a1a0c; font-family: var(--display); font-size: 18px; box-shadow: 0 5px 0 #a3461f; z-index: 8; touch-action: none; }
+.is-touch .spawn-btn:not([hidden]) { display: block; }
+.mute + .mute { margin-left: 6px; }
+@media (prefers-reduced-motion: reduce) { .banner span { animation: none; } }
+</style>
+
+<canvas id="c" aria-label="Đấu trường dê trên đỉnh cột đá"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <div class="hud-block">
+    <span class="hud-label" id="hudLevelLabel">Màn</span>
+    <span class="hud-value" id="hudLevel">1</span>
+    <div class="meter">
+      <span class="hud-label">Tốc độ</span>
+      <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+      <span class="meter-speed" id="meterSpeed">0.0 m/s</span>
+    </div>
+  </div>
+  <div class="hud-block hud-right">
+    <span class="hud-label" id="hudLeftLabel">Còn 2 đối thủ</span>
+    <div class="pips" id="pips"></div>
+    <button class="mute" id="mute" type="button">Âm thanh: bật</button>
+    <button class="mute" id="toMenu" type="button" hidden>Về menu</button>
+  </div>
+</div>
+
+<div class="banner" id="banner" hidden><div class="banner-inner"><span id="bannerText">MÀN 1</span><b id="bannerSub"></b></div></div>
+
+<div class="hint" id="hint" hidden>Nhấn giữ chuột ở bất kỳ đâu rồi kéo như cần điều khiển · kéo càng xa lực đẩy càng mạnh</div>
+<div class="joy" id="joy" hidden><div class="joy-knob" id="joyKnob"></div></div>
+
+<button class="spawn-btn" id="spawnBtn" type="button" hidden>+ Dê</button>
+<div class="touch" id="touchUi" hidden><div class="touch-hint">Chạm bất kỳ đâu rồi kéo như cần điều khiển</div></div>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <p class="eyebrow" id="ovEyebrow">Đỉnh cột đá · trên mây</p>
+    <h1 id="ovTitle">Sừng Chiến</h1>
+    <p class="text" id="ovText">Bạn là con dê trắng sừng vàng trên một cột đá tròn giữa trời. Lấy đà, húc tất cả đàn dê địch rơi xuống vực để qua màn. Đừng để mình rơi trước.</p>
+    <div class="stats" id="ovStats" hidden></div>
+    <div class="btns">
+      <button class="btn" id="ovBtn" type="button">Chế độ test</button>
+      <button class="btn ghost" id="ovBtn2" type="button">Chơi theo màn</button>
+    </div>
+    <p class="keys" id="ovKeys">Điều khiển bằng <b>cần điều khiển ảo</b>: nhấn giữ chuột (hoặc chạm) ở bất kỳ đâu, cần hiện ra tại đó, kéo theo hướng muốn đi. Kéo càng xa tâm cần thì lực đẩy càng mạnh. Đẩy càng lâu một hướng thì vận tốc càng cộng dồn; muốn đổi hướng phải thắng được quán tính. Trong <b>chế độ test</b>, bấm phím <kbd>1</kbd>–<kbd>7</kbd> để thả từng loại dê: Lính, Húc Liều, Đá Tảng, Lanh, Rình, Bầy (3 con), Đầu Đàn, hoặc <kbd>Space</kbd> để thả dê địch. Va chạm là va chạm đàn hồi: tốc độ hai con lao vào nhau càng lớn thì cả hai bật ra càng mạnh, con nặng hơn ít bị đẩy hơn.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const meterFill = $('meterFill'), meterSpeed = $('meterSpeed');
+
+// ---------- Renderer & scene ----------
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+(function sky() {
+  const cv = document.createElement('canvas'); cv.width = 4; cv.height = 512;
+  const g = cv.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, '#2b2152');
+  gr.addColorStop(0.28, '#8a4a74');
+  gr.addColorStop(0.46, '#f0905c');
+  gr.addColorStop(0.58, '#8f5a7c');
+  gr.addColorStop(1, '#241a3a');
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 512);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.encoding = THREE.sRGBEncoding;
+  scene.background = tex;
+})();
+scene.fog = new THREE.Fog(0x6a4470, 28, 85);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 300);
+scene.add(new THREE.HemisphereLight(0xffe6cc, 0x5a3f7a, 0.55));
+const sun = new THREE.DirectionalLight(0xffd2a0, 1.25);
+sun.position.set(-14, 26, 12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 70 });
+sun.shadow.bias = -0.0008;
+scene.add(sun);
+
+// Cartoon look: 3-band toon shading plus inverted-hull ink outlines.
+const toonRamp = (() => {
+  const data = new Uint8Array([90, 90, 90, 255, 175, 175, 175, 255, 255, 255, 255, 255]);
+  const t = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
+  t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+  return t;
+})();
+const mat = (color, extra) => {
+  const o = { color, gradientMap: toonRamp };
+  if (extra) for (const k of ['emissive', 'transparent', 'opacity', 'side', 'map']) if (k in extra) o[k] = extra[k];
+  return new THREE.MeshToonMaterial(o);
+};
+const INK = new THREE.MeshBasicMaterial({ color: 0x1c1226, side: THREE.BackSide });
+// Adds a slightly larger back-face copy behind the mesh; thickness is in world units, not a percentage.
+function outline(mesh, thick) {
+  const geo = mesh.geometry;
+  if (!geo.boundingBox) geo.computeBoundingBox();
+  const s = new THREE.Vector3(); geo.boundingBox.getSize(s);
+  const c = new THREE.Vector3(); geo.boundingBox.getCenter(c);
+  const hull = new THREE.Mesh(geo, INK);
+  hull.scale.set((s.x + thick * 2) / Math.max(s.x, 1e-3), (s.y + thick * 2) / Math.max(s.y, 1e-3), (s.z + thick * 2) / Math.max(s.z, 1e-3));
+  hull.position.copy(c).multiply(new THREE.Vector3(1 - hull.scale.x, 1 - hull.scale.y, 1 - hull.scale.z));
+  hull.userData.isOutline = true;
+  mesh.add(hull);
+  return hull;
+}
+
+// ---------- World decoration ----------
+const decor = new THREE.Group(); scene.add(decor);
+const floaters = [];
+for (let i = 0; i < 14; i++) {
+  const s = 0.6 + Math.random() * 2.2;
+  const m = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), mat(0x7a5f58));
+  const ang = Math.random() * Math.PI * 2, dist = 18 + Math.random() * 22;
+  m.position.set(Math.cos(ang) * dist, -4 - Math.random() * 22, Math.sin(ang) * dist);
+  m.userData = { spin: (Math.random() - .5) * 0.4, bob: Math.random() * 6, base: m.position.y };
+  outline(m, 0.12);
+  decor.add(m); floaters.push(m);
+}
+const clouds = [];
+const cloudMat = mat(0xfff0e6, { transparent: true, opacity: 0.82, roughness: 1 });
+for (let i = 0; i < 10; i++) {
+  const c = new THREE.Group();
+  const n = 3 + (Math.random() * 3 | 0);
+  for (let k = 0; k < n; k++) {
+    const p = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4 + Math.random() * 1.6, 0), cloudMat);
+    p.position.set(k * 1.8 - n, Math.random() * 0.6, Math.random() * 1.5);
+    p.scale.y = 0.55;
+    c.add(p);
+  }
+  const ang = Math.random() * Math.PI * 2, dist = 16 + Math.random() * 30;
+  c.position.set(Math.cos(ang) * dist, -9 - Math.random() * 10, Math.sin(ang) * dist);
+  c.userData.speed = 0.4 + Math.random() * 0.8;
+  decor.add(c); clouds.push(c);
+}
+
+// ---------- Pillar ----------
+let pillar = null, R = 11;
+function hash3(x, y, z) {
+  const s = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453;
+  return s - Math.floor(s);
+}
+function buildPillar(radius) {
+  if (pillar) { scene.remove(pillar); pillar.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  R = radius;
+  const g = new THREE.Group();
+  const H = 36;
+  const side = new THREE.CylinderGeometry(R * 0.99, R * 0.5, H, 30, 8, true);
+  const p = side.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    if (y > H / 2 - 0.01) continue;
+    const k = 1 + (hash3(Math.round(x * 50), Math.round(y * 50), Math.round(z * 50)) - 0.5) * 0.18;
+    p.setX(i, x * k); p.setZ(i, z * k);
+  }
+  side.computeVertexNormals();
+  const sideMesh = new THREE.Mesh(side, mat(0x8b6a58, { side: THREE.DoubleSide }));
+  sideMesh.position.y = -H / 2 - 0.3;
+  sideMesh.receiveShadow = true;
+  g.add(sideMesh);
+
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 0.99, 0.6, 56), mat(0x86a85a));
+  top.position.y = -0.3; top.receiveShadow = true; g.add(top);
+  outline(top, 0.12);
+  const rim = new THREE.Mesh(new THREE.RingGeometry(R - 0.9, R, 56), mat(0x6d8a47));
+  rim.rotation.x = -Math.PI / 2; rim.position.y = 0.01; rim.receiveShadow = true; g.add(rim);
+  const inner = new THREE.Mesh(new THREE.CircleGeometry(R * 0.35, 40), mat(0x93b565));
+  inner.rotation.x = -Math.PI / 2; inner.position.y = 0.012; inner.receiveShadow = true; g.add(inner);
+
+  const tuftMat = mat(0x5f8a3c);
+  for (let i = 0; i < 40; i++) {
+    const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * (R - 0.6);
+    const t = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35 + Math.random() * 0.25, 4), tuftMat);
+    t.position.set(Math.cos(a) * d, 0.15, Math.sin(a) * d);
+    g.add(t);
+  }
+  const flowerColors = [0xffe07a, 0xffffff, 0xff9ab0];
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * (R - 0.8);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.08, 5, 4), mat(flowerColors[i % 3]));
+    f.position.set(Math.cos(a) * d, 0.1, Math.sin(a) * d);
+    g.add(f);
+  }
+  scene.add(g);
+  pillar = g;
+}
+
+// ---------- Goats (visual) — physics still treats each goat as a sphere ----------
+const LOOKS = [
+  { body: 0x9a8270, dark: 0x2e231e, horn: 0xdccbab },
+  { body: 0x46393a, dark: 0x171112, horn: 0xcdb898 },
+  { body: 0xc89c6c, dark: 0x3b2618, horn: 0xe8dcc0 },
+  { body: 0x7b7a82, dark: 0x25242a, horn: 0xd6c8a8 },
+  { body: 0xb06a4a, dark: 0x3a1c12, horn: 0xeadbb8 },
+  { body: 0x5f6f4f, dark: 0x1f2618, horn: 0xe2d4b4 },
+];
+const PLAYER_LOOK = { body: 0xf6f0e4, dark: 0x3b2f2a, horn: 0xf2c14e };
+const BOSS_LOOK = { body: 0x2b2026, dark: 0x0f0a0c, horn: 0xff5d6c };
+function box(w, h, d, m, x, y, z) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  b.position.set(x, y, z); b.castShadow = true; return b;
+}
+function buildGoatMesh(look) {
+  const g = new THREE.Group();
+  const mB = mat(look.body), mD = mat(look.dark), mH = mat(look.horn, { roughness: 0.6 });
+  const eye = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  const rig = new THREE.Group(); g.add(rig);
+  rig.add(box(0.95, 0.78, 1.45, mB, 0, 1.0, 0));
+  rig.add(box(0.7, 0.2, 1.1, mB, 0, 1.42, -0.05));
+  rig.add(box(0.18, 0.28, 0.18, mB, 0, 1.25, -0.8));
+  const head = new THREE.Group(); head.position.set(0, 1.45, 0.75); rig.add(head);
+  head.add(box(0.42, 0.5, 0.42, mB, 0, 0.05, 0));
+  head.add(box(0.5, 0.48, 0.62, mB, 0, 0.32, 0.32));
+  head.add(box(0.38, 0.3, 0.26, mD, 0, 0.2, 0.7));
+  head.add(box(0.06, 0.06, 0.02, eye, -0.26, 0.42, 0.45));
+  head.add(box(0.06, 0.06, 0.02, eye, 0.26, 0.42, 0.45));
+  const earL = box(0.3, 0.1, 0.16, mB, -0.36, 0.4, 0.2); earL.rotation.z = 0.4; head.add(earL);
+  const earR = box(0.3, 0.1, 0.16, mB, 0.36, 0.4, 0.2); earR.rotation.z = -0.4; head.add(earR);
+  const beard = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.3, 4), mD);
+  beard.position.set(0, -0.08, 0.68); beard.rotation.x = Math.PI; head.add(beard);
+  for (const s of [-1, 1]) {
+    const h1 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, 0.45, 6), mH);
+    h1.position.set(0.15 * s, 0.68, 0.2); h1.rotation.x = -0.7; h1.rotation.z = -0.15 * s; h1.castShadow = true; head.add(h1);
+    const h2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.07, 0.38, 6), mH);
+    h2.position.set(0.19 * s, 0.86, -0.08); h2.rotation.x = -1.6; h2.rotation.z = -0.2 * s; h2.castShadow = true; head.add(h2);
+  }
+  const legs = [];
+  for (const [x, z] of [[-0.3, 0.5], [0.3, 0.5], [-0.3, -0.5], [0.3, -0.5]]) {
+    const piv = new THREE.Group(); piv.position.set(x, 0.7, z);
+    piv.add(box(0.2, 0.62, 0.2, mB, 0, -0.3, 0));
+    piv.add(box(0.22, 0.12, 0.22, mD, 0, -0.64, 0));
+    rig.add(piv); legs.push(piv);
+  }
+  const toOutline = [];
+  g.traverse(o => { if (o.isMesh && o.material !== eye && !o.userData.isOutline) toOutline.push(o); });
+  toOutline.forEach(o => outline(o, 0.04));
+  return { group: g, rig, head, legs };
+}
+
+let goats = [], player = null;
+const playerRing = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.12, 40), new THREE.MeshBasicMaterial({ color: 0xf2c14e, transparent: true, opacity: 0.85 }));
+playerRing.rotation.x = -Math.PI / 2; playerRing.position.y = 0.04;
+const playerDisc = new THREE.Mesh(new THREE.CircleGeometry(1.0, 48), new THREE.MeshBasicMaterial({ color: 0x3ee0ff, transparent: true, opacity: 0.22, depthWrite: false }));
+playerDisc.rotation.x = -Math.PI / 2; playerDisc.position.y = 0.03;
+// Player-only gear: a warrior goat in iron helmet and armor, so the hero reads at a glance.
+// ---------- Looks and gear for the other enemy types ----------
+const DA_LOOK = { body: 0x80838c, dark: 0x2b2c31, horn: 0xbab2a2 };
+const LANH_LOOK = { body: 0xead186, dark: 0x4d3c19, horn: 0xfff4d8 };
+const RINH_LOOK = { body: 0x232027, dark: 0x0b0a0c, horn: 0x948b7c };
+const BAY_LOOK = { body: 0xf1e6cc, dark: 0x6e5841, horn: 0xdac8a2 };
+function gear(parent, geo, material, x, y, z, thick) {
+  const mesh = new THREE.Mesh(geo, material); mesh.position.set(x, y, z);
+  mesh.castShadow = true; outline(mesh, thick || 0.04); parent.add(mesh); return mesh;
+}
+// Đá Tảng: stone-grey bruiser with boulders grown into its back and a patch of moss.
+function decorateDa(m) {
+  const rock = mat(0x6d6f77), rock2 = mat(0x8c8e96), moss = mat(0x5f8a3c);
+  gear(m.rig, new THREE.DodecahedronGeometry(0.34, 0), rock, 0, 1.55, -0.25, 0.04).rotation.set(0.4, 0.3, 0);
+  gear(m.rig, new THREE.DodecahedronGeometry(0.26, 0), rock2, 0.22, 1.5, 0.25, 0.04).rotation.set(0.1, 0.8, 0.3);
+  gear(m.rig, new THREE.DodecahedronGeometry(0.22, 0), rock2, -0.24, 1.48, 0.15, 0.04);
+  gear(m.rig, new THREE.BoxGeometry(0.4, 0.08, 0.4), moss, 0.05, 1.82, -0.25, 0.03);
+  gear(m.head, new THREE.BoxGeometry(0.56, 0.14, 0.2), rock, 0, 0.56, 0.6, 0.03);
+}
+// Dê Lanh: lean pale-gold sprinter with a blue sweatband and long trailing scarf.
+function decorateLanh(m) {
+  const blue = mat(0x2f7fe0), white = mat(0xffffff);
+  gear(m.head, new THREE.BoxGeometry(0.56, 0.1, 0.66), blue, 0, 0.48, 0.32, 0.03);
+  gear(m.rig, new THREE.BoxGeometry(0.62, 0.18, 0.52), blue, 0, 1.38, 0.6, 0.03);
+  const tail = gear(m.rig, new THREE.BoxGeometry(0.16, 0.08, 1.0), blue, 0.18, 1.5, -0.1, 0.02);
+  tail.rotation.set(-0.15, 0.15, 0);
+  for (const s of [-1, 1]) {
+    const bolt = gear(m.rig, new THREE.BoxGeometry(0.03, 0.12, 0.5), white, 0.48 * s, 1.05, 0, 0.015);
+    bolt.rotation.x = 0.5;
+  }
+}
+// Dê Rình: black coat, dark violet cloak and glowing yellow eyes.
+function decorateRinh(m) {
+  const cloak = mat(0x3b2650), cloakDark = mat(0x24173a);
+  gear(m.rig, new THREE.BoxGeometry(1.05, 0.16, 1.2), cloak, 0, 1.45, -0.1, 0.03);
+  for (const s of [-1, 1]) {
+    const flap = gear(m.rig, new THREE.BoxGeometry(0.1, 0.55, 1.1), cloakDark, 0.53 * s, 1.18, -0.1, 0.03);
+    flap.rotation.z = 0.12 * s;
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.03), new THREE.MeshBasicMaterial({ color: 0xffd23a }));
+    eye.position.set(0.262 * s, 0.42, 0.45); m.head.add(eye);
+  }
+  gear(m.head, new THREE.BoxGeometry(0.62, 0.3, 0.5), cloak, 0, 0.58, 0.12, 0.03);
+}
+// Dê Bầy: small cream goats with a red collar and a brass bell.
+function decorateBay(m) {
+  const red = mat(0xd8323c), brass = mat(0xe8b23c, { emissive: 0x2a1a00 });
+  gear(m.rig, new THREE.BoxGeometry(0.56, 0.12, 0.5), red, 0, 1.36, 0.62, 0.03);
+  gear(m.rig, new THREE.SphereGeometry(0.11, 8, 6), brass, 0, 1.2, 0.86, 0.02);
+}
+// Dê Đầu Đàn: huge curled horns, red cape, gold chain, and a red aura ring on the ground.
+function decorateDau(m) {
+  const red = mat(0xb81d2a), gold = mat(0xffcc33, { emissive: 0x3a2400 }), horn = mat(0xff5d6c);
+  gear(m.rig, new THREE.BoxGeometry(1.0, 0.1, 1.3), red, 0, 1.47, -0.2, 0.03);
+  const cape = gear(m.rig, new THREE.BoxGeometry(0.9, 0.7, 0.08), red, 0, 1.2, -0.82, 0.03);
+  cape.rotation.x = 0.25;
+  gear(m.rig, new THREE.TorusGeometry(0.3, 0.05, 6, 14), gold, 0, 1.32, 0.66, 0.02).rotation.x = Math.PI / 2 - 0.4;
+  for (const s of [-1, 1]) {
+    const big = gear(m.head, new THREE.TorusGeometry(0.22, 0.07, 6, 10, Math.PI * 1.3), horn, 0.3 * s, 0.7, 0.05, 0.03);
+    big.rotation.set(0, Math.PI / 2, s > 0 ? 0 : Math.PI);
+  }
+  const aura = new THREE.Mesh(new THREE.RingGeometry(DAU_AURA / 1.6 - 0.12, DAU_AURA / 1.6, 64),
+    new THREE.MeshBasicMaterial({ color: 0xff5d6c, transparent: true, opacity: 0.35, depthWrite: false }));
+  aura.rotation.x = -Math.PI / 2; aura.position.y = 0.03; m.group.add(aura);
+  m.aura = aura;
+}
+
+// Dê Húc Liều: rust-red coat, red headband with trailing tails, war paint and sharpened forward horns.
+const LIEU_LOOK = { body: 0xa4462c, dark: 0x2a120c, horn: 0xf4e8cf };
+function decorateLieu(m) {
+  const red = mat(0xdc1f2e), ink = mat(0x14090a), ivory = mat(0xf4e8cf);
+  const add = (parent, geo, material, x, y, z, thick) => {
+    const mesh = new THREE.Mesh(geo, material); mesh.position.set(x, y, z);
+    mesh.castShadow = true; outline(mesh, thick || 0.04); parent.add(mesh); return mesh;
+  };
+  add(m.head, new THREE.BoxGeometry(0.56, 0.11, 0.66), red, 0, 0.5, 0.32, 0.03);
+  for (const s of [-1, 1]) {
+    const tail = add(m.head, new THREE.BoxGeometry(0.07, 0.08, 0.5), red, 0.09 * s, 0.46, -0.2, 0.02);
+    tail.rotation.set(0.35, 0.25 * s, 0);
+    add(m.head, new THREE.BoxGeometry(0.04, 0.16, 0.02), ink, 0.262 * s, 0.28, 0.48, 0.01);
+    // Glowing red eyes under an angry slanted brow.
+    const eyeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.07, 0.03), new THREE.MeshBasicMaterial({ color: 0xff2a1a }));
+    eyeGlow.position.set(0.262 * s, 0.42, 0.45); m.head.add(eyeGlow);
+    const brow = add(m.head, new THREE.BoxGeometry(0.03, 0.05, 0.18), ink, 0.27 * s, 0.5, 0.44, 0.01);
+    brow.rotation.x = 0; brow.rotation.y = 0; brow.rotation.z = 0;
+    brow.scale.set(1, 1, 1);
+    brow.position.set(0.262 * s, 0.49, 0.46);
+    brow.rotation.set(0, Math.PI / 2, 0.45 * s);
+    const spike = add(m.head, new THREE.ConeGeometry(0.075, 0.5, 6), ivory, 0.2 * s, 0.6, 0.58, 0.03);
+    spike.rotation.set(Math.PI / 2 - 0.35, 0, -0.12 * s);
+  }
+}
+// Dê Lính: every soldier wears the same kit so the type reads at a glance.
+const LINH_LOOK = { body: 0x8f6f4f, dark: 0x2e2219, horn: 0xd8c7a3 };
+function decorateLinh(m) {
+  const olive = mat(0x5e7337), oliveDark = mat(0x3f4f24), leather = mat(0x5a3a22), brass = mat(0xe0b040, { emissive: 0x2a1a00 });
+  const add = (parent, geo, material, x, y, z, thick) => {
+    const mesh = new THREE.Mesh(geo, material); mesh.position.set(x, y, z);
+    mesh.castShadow = true; outline(mesh, thick || 0.04); parent.add(mesh); return mesh;
+  };
+  // Army helmet: dome with a brim and a chin strap.
+  const dome = add(m.head, new THREE.SphereGeometry(0.36, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), olive, 0, 0.54, 0.3);
+  dome.scale.set(1, 0.8, 1.05);
+  add(m.head, new THREE.CylinderGeometry(0.42, 0.44, 0.06, 14), oliveDark, 0, 0.54, 0.3, 0.03);
+  add(m.head, new THREE.BoxGeometry(0.54, 0.05, 0.05), leather, 0, 0.12, 0.42, 0.02);
+  // Bandolier across the chest with brass rounds.
+  const strap = add(m.rig, new THREE.BoxGeometry(1.0, 0.14, 0.1), leather, 0, 1.08, 0.72);
+  strap.rotation.z = 0.55;
+  for (let i = -2; i <= 2; i++) {
+    const b = add(m.rig, new THREE.BoxGeometry(0.06, 0.14, 0.06), brass, i * 0.17 * Math.cos(0.55), 1.08 + i * 0.17 * Math.sin(0.55), 0.79, 0.015);
+    b.rotation.z = 0.55;
+  }
+  // Backpack on the back.
+  add(m.rig, new THREE.BoxGeometry(0.7, 0.42, 0.5), olive, 0, 1.5, -0.25);
+  add(m.rig, new THREE.BoxGeometry(0.72, 0.12, 0.3), oliveDark, 0, 1.75, -0.25, 0.03);
+}
+function decoratePlayer(m) {
+  const steel = mat(0xa7b1c2), dark = mat(0x566074), red = mat(0xc8323c), gold = mat(0xffcc33, { emissive: 0x3a2400 });
+  const add = (parent, geo, material, x, y, z, thick) => {
+    const mesh = new THREE.Mesh(geo, material); mesh.position.set(x, y, z);
+    mesh.castShadow = true; outline(mesh, thick || 0.04); parent.add(mesh); return mesh;
+  };
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+  // Helmet: cap over the skull, rim band, nose guard and a red crest.
+  add(m.head, B(0.6, 0.2, 0.68), steel, 0, 0.6, 0.32);
+  add(m.head, B(0.64, 0.08, 0.72), dark, 0, 0.49, 0.32, 0.03);
+  add(m.head, B(0.08, 0.3, 0.06), steel, 0, 0.36, 0.67, 0.03);
+  add(m.head, B(0.1, 0.18, 0.56), red, 0, 0.78, 0.26, 0.03);
+  add(m.head, B(0.1, 0.32, 0.1), red, 0, 0.72, -0.06, 0.03);
+  // Shoulder plates with gold rivets.
+  for (const sd of [-1, 1]) {
+    const p = add(m.rig, B(0.34, 0.2, 0.52), steel, 0.56 * sd, 1.34, 0.32);
+    p.rotation.z = -0.4 * sd;
+    add(m.rig, new THREE.SphereGeometry(0.06, 6, 4), gold, 0.62 * sd, 1.43, 0.32, 0.02);
+  }
+  // Chest plate and a belt.
+  add(m.rig, B(0.84, 0.52, 0.14), steel, 0, 1.06, 0.74);
+  add(m.rig, B(0.3, 0.3, 0.06), gold, 0, 1.08, 0.83, 0.03);
+  add(m.rig, B(1.0, 0.14, 1.0), dark, 0, 0.98, 0.1, 0.03);
+  // Round shield on the left flank.
+  const shield = add(m.rig, new THREE.CylinderGeometry(0.42, 0.42, 0.08, 16), red, -0.55, 1.02, 0.05);
+  shield.rotation.z = Math.PI / 2;
+  const boss = add(m.rig, new THREE.SphereGeometry(0.12, 8, 6), gold, -0.61, 1.02, 0.05, 0.02);
+  boss.scale.x = 0.6;
+  // Marker: a downward arrow floating above the goat.
+  const marker = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.6, 4), new THREE.MeshBasicMaterial({ color: 0x3ee0ff }));
+  marker.rotation.x = Math.PI; marker.position.y = 3.1;
+  outline(marker, 0.06);
+  m.group.add(marker);
+  return marker;
+}
+// Velocity arrow on the ground: direction and size of the player's current velocity.
+const arrowShape = new THREE.Shape();
+arrowShape.moveTo(-0.12, 0); arrowShape.lineTo(0.12, 0); arrowShape.lineTo(0.12, 0.7); arrowShape.lineTo(0.32, 0.7); arrowShape.lineTo(0, 1.1); arrowShape.lineTo(-0.32, 0.7); arrowShape.lineTo(-0.12, 0.7); arrowShape.lineTo(-0.12, 0);
+const velArrow = new THREE.Mesh(new THREE.ShapeGeometry(arrowShape), new THREE.MeshBasicMaterial({ color: 0xff8a4c, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+velArrow.rotation.x = Math.PI / 2;
+const velPivot = new THREE.Group(); velPivot.add(velArrow); velPivot.position.y = 0.05; velPivot.visible = false;
+const cursorMark = new THREE.Group();
+(function () {
+  const m = new THREE.MeshBasicMaterial({ color: 0xfff4e4, transparent: true, opacity: 0.75 });
+  const r = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.42, 32), m); r.rotation.x = -Math.PI / 2; cursorMark.add(r);
+  const d = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), m); d.rotation.x = -Math.PI / 2; cursorMark.add(d);
+  cursorMark.position.y = 0.04; cursorMark.visible = false; scene.add(cursorMark);
+})();
+
+const MAX_SPEED = 20;
+function spawnGoat(isPlayer, x, z, boss, type) {
+  type = isPlayer ? 'player' : boss ? 'dau' : (type || 'linh');
+  boss = type === 'dau';
+  const TP = TYPE_PARAMS[type];
+  // Húc Liều is a compact little brute: smaller body, same fight.
+  const baseScale = TP ? TP.scale : type === 'lieu' ? LIEU_SCALE : 1;
+  const r = 0.8 * baseScale;
+  const looks = { linh: LINH_LOOK, lieu: LIEU_LOOK, da: DA_LOOK, lanh: LANH_LOOK, rinh: RINH_LOOK, bay: BAY_LOOK, dau: BOSS_LOOK };
+  const m = buildGoatMesh(isPlayer ? PLAYER_LOOK : looks[type] || LINH_LOOK);
+  const deco = { linh: decorateLinh, lieu: decorateLieu, da: decorateDa, lanh: decorateLanh, rinh: decorateRinh, bay: decorateBay, dau: decorateDau }[type];
+  if (deco) deco(m);
+  m.group.scale.setScalar(baseScale);
+  scene.add(m.group);
+  const g = {
+    isPlayer, boss: !!boss, mesh: m, x, z, y: 0, vy: 0, vx: 0, vz: 0,
+    r, mass: isPlayer ? 1.3 : TP ? TP.mass : type === 'lieu' ? LIEU_MASS : LINH_MASS,
+    accel: isPlayer ? 20 : 0,
+    falling: false, alive: true, trail: 0, hitCd: 0, knockT: 0,
+    face: Math.atan2(-x, -z), walk: Math.random() * 6,
+    type, baseScale,
+    ai: { target: null, retarget: 0, mode: 'approach', t: 0, wander: Math.random() * 6, dx: 0, dz: 1 },
+  };
+  if (isPlayer) m.group.add(playerRing);
+  goats.push(g);
+  return g;
+}
+function clearGoats() {
+  clearSkids();
+  for (const g of goats) scene.remove(g.mesh.group);
+  goats = []; player = null;
+}
+
+// ---------- Skid marks: dark streaks left on the grass when a goat brakes, slides or gets shoved ----------
+const SKID_MAX = 360;
+const skidGeo = new THREE.PlaneGeometry(0.15, 1); skidGeo.rotateX(-Math.PI / 2);
+const skids = [];
+let skidIdx = 0;
+function addSkid(x, z, ang, len) {
+  let s = skids[skidIdx];
+  if (!s) {
+    const m = new THREE.Mesh(skidGeo, new THREE.MeshBasicMaterial({ color: 0x2e2a18, transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.renderOrder = 1; scene.add(m);
+    s = skids[skidIdx] = { m, life: 0 };
+  }
+  s.m.visible = true; s.life = 0;
+  s.m.position.set(x, 0.02, z); s.m.rotation.y = ang; s.m.scale.z = len;
+  s.m.material.opacity = 0.5;
+  skidIdx = (skidIdx + 1) % SKID_MAX;
+}
+function updateSkids(dt) {
+  for (const s of skids) {
+    if (!s || !s.m.visible) continue;
+    s.life += dt;
+    const k = s.life / 2.4;
+    if (k >= 1) s.m.visible = false; else s.m.material.opacity = 0.5 * (1 - k * k);
+  }
+}
+function clearSkids() { for (const s of skids) if (s) s.m.visible = false; }
+// Lay two hoof streaks behind a skidding goat.
+function skidTrail(g, sp, dt) {
+  g.skidAcc = (g.skidAcc || 0) + dt;
+  if (g.skidAcc < 0.035) return;
+  const step = g.skidAcc; g.skidAcc = 0;
+  const ang = Math.atan2(g.vx, g.vz), ux = g.vx / sp, uz = g.vz / sp;
+  const px = -uz, pz = ux, w = 0.3 * g.r / 0.8, len = Math.max(0.12, sp * step * 1.05);
+  for (const s of [-1, 1]) addSkid(g.x + px * w * s - ux * 0.3, g.z + pz * w * s - uz * 0.3, ang, len);
+  if (Math.random() < 0.35) burst(g.x - ux * 0.5, 0.1, g.z - uz * 0.5, 1, 'dust', 0.4);
+}
+
+// ---------- Particles & popups ----------
+const dustGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+const dustMats = { dust: mat(0xeedcb8), hit: mat(0xffc56a, { emissive: 0x663300 }), steam: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }) };
+const particles = [];
+function burst(x, y, z, n, kind, power) {
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(dustGeo, dustMats[kind]);
+    m.position.set(x, y, z);
+    const a = Math.random() * Math.PI * 2, s = (1 + Math.random() * 3) * (power || 1);
+    particles.push({ m, vx: Math.cos(a) * s, vy: 2 + Math.random() * 4, vz: Math.sin(a) * s, life: 0, max: 0.5 + Math.random() * 0.4 });
+    scene.add(m);
+  }
+}
+const pops = [];
+function popText(text, x, y, z, color) {
+  const el = document.createElement('div');
+  el.className = 'pop'; el.textContent = text;
+  if (color) el.style.color = color;
+  document.body.appendChild(el);
+  pops.push({ el, pos: new THREE.Vector3(x, y, z), life: 0 });
+}
+
+// ---------- Audio ----------
+let ac = null, muted = false;
+function audio() {
+  if (muted) return null;
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function beeh(pitch) {
+  const c = audio(); if (!c) return;
+  const t = c.currentTime;
+  const o = c.createOscillator(), lfo = c.createOscillator(), lg = c.createGain(), f = c.createBiquadFilter(), g = c.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(430 * pitch, t); o.frequency.linearRampToValueAtTime(330 * pitch, t + 0.8);
+  lfo.frequency.value = 9; lg.gain.value = 28 * pitch; lfo.connect(lg); lg.connect(o.frequency);
+  f.type = 'bandpass'; f.frequency.value = 1300; f.Q.value = 1.2;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.32, t + 0.05); g.gain.linearRampToValueAtTime(0.22, t + 0.5); g.gain.linearRampToValueAtTime(0, t + 0.85);
+  o.connect(f); f.connect(g); g.connect(c.destination);
+  o.start(t); lfo.start(t); o.stop(t + 0.9); lfo.stop(t + 0.9);
+}
+function thump(strength) {
+  const c = audio(); if (!c) return;
+  const t = c.currentTime;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.18);
+  g.gain.setValueAtTime(0.6 * strength, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.25);
+  const len = c.sampleRate * 0.08, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const n = c.createBufferSource(), ng = c.createGain(); n.buffer = buf; ng.gain.value = 0.35 * strength;
+  n.connect(ng); ng.connect(c.destination); n.start(t);
+}
+function whoosh(power) {
+  const c = audio(); if (!c) return;
+  const t = c.currentTime, dur = 0.25;
+  const len = c.sampleRate * dur, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const n = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  n.buffer = buf; f.type = 'bandpass'; f.Q.value = 2; f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(2200, t + dur);
+  g.gain.setValueAtTime(0.12 + 0.18 * power, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  n.connect(f); f.connect(g); g.connect(c.destination); n.start(t);
+}
+function jingle(up) {
+  const c = audio(); if (!c) return;
+  const notes = up ? [523, 659, 784, 1047] : [392, 330, 262, 196];
+  notes.forEach((fq, i) => {
+    const t = c.currentTime + i * 0.11, o = c.createOscillator(), g = c.createGain();
+    o.type = 'square'; o.frequency.value = fq;
+    g.gain.setValueAtTime(0.08, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.2);
+  });
+}
+
+// ---------- Input: floating virtual joystick (mouse drag or touch) ----------
+const keys = {};
+const JOY_RADIUS = 60;           // px of drag for full thrust
+const JOY_DEAD = 6;              // px dead zone
+const joyEl = $('joy'), joyKnob = $('joyKnob');
+let joy = { id: null, ox: 0, oy: 0, dx: 0, dy: 0 };
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if ((e.code === 'Enter' || e.code === 'Space') && !$('overlay').hidden && !e.repeat) { e.preventDefault(); $('ovBtn').click(); return; }
+  if (e.code === 'Space' && $('overlay').hidden) {
+    e.preventDefault();
+    if (!e.repeat && mode === 'test' && state === 'play') spawnTestGoat();
+  }
+  // Number keys 1–7 drop a specific AI type in test mode.
+  const dk = /^(?:Digit|Numpad)([1-7])$/.exec(e.code);
+  if (dk && $('overlay').hidden && !e.repeat && mode === 'test' && state === 'play') {
+    spawnTestGoat(['linh', 'lieu', 'da', 'lanh', 'rinh', 'bay', 'dau'][+dk[1] - 1]);
+  }
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; joyEnd(); });
+// The joystick works invisibly; its graphic stays hidden.
+function joyShow() {
+  joyEl.style.left = joy.ox + 'px'; joyEl.style.top = joy.oy + 'px';
+  joyKnob.style.transform = `translate(${joy.dx}px, ${joy.dy}px)`;
+}
+// Pointer lock: during play the mouse is captured inside the game area and the cursor is hidden.
+// Mouse movement then tilts an invisible stick: the offset from where the lock started is the push.
+const LOCK_RADIUS = 90;
+let locked = false, lockJoy = { dx: 0, dy: 0 }, lockHeld = false;
+function isTouchUi() { return document.body.classList.contains('is-touch'); }
+function requestLock() {
+  if (isTouchUi() || locked || !canvas.requestPointerLock) return;
+  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (err) {}
+}
+function releaseLock() { if (locked && document.exitPointerLock) document.exitPointerLock(); }
+function updateHint() {
+  $('hint').textContent = (typeof mode !== 'undefined' && mode === 'test' ? '1 Lính · 2 Húc Liều · 3 Đá Tảng · 4 Lanh · 5 Rình · 6 Bầy · 7 Đầu Đàn · ' : '') + (locked
+    ? 'Chuột đã khóa trong vùng chơi · giữ chuột trái và rê để đẩy, thả ra để dừng · Esc để mở khóa'
+    : 'Click vào màn hình để khóa chuột · hoặc nhấn giữ rồi kéo như cần điều khiển');
+}
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+  lockJoy = { dx: 0, dy: 0 }; lockHeld = false;
+  if (locked) joyEnd();
+  updateHint();
+});
+// Hold the button to grab the stick; release to let go (push stops).
+document.addEventListener('mousedown', e => {
+  if (!locked || e.button !== 0) return;
+  lockHeld = true; lockJoy = { dx: 0, dy: 0 };
+});
+document.addEventListener('mouseup', e => {
+  if (e.button !== 0) return;
+  lockHeld = false; lockJoy = { dx: 0, dy: 0 };
+});
+document.addEventListener('mousemove', e => {
+  if (!locked || !lockHeld) return;
+  let dx = lockJoy.dx + (e.movementX || 0), dy = lockJoy.dy + (e.movementY || 0);
+  const l = Math.hypot(dx, dy);
+  if (l > LOCK_RADIUS) { dx *= LOCK_RADIUS / l; dy *= LOCK_RADIUS / l; }
+  lockJoy.dx = dx; lockJoy.dy = dy;
+});
+canvas.addEventListener('pointerdown', e => {
+  if (locked) return;
+  if (e.pointerType === 'mouse' && (state === 'play' || state === 'intro')) { requestLock(); return; }
+  if (joy.id !== null) return;
+  joy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 };
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+  audio();
+  if (state === 'play' || state === 'intro') joyShow();
+});
+canvas.addEventListener('pointermove', e => {
+  if (e.pointerId !== joy.id) return;
+  let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy;
+  const l = Math.hypot(dx, dy);
+  // Drag past the rim and the base follows the finger, like most mobile games.
+  if (l > JOY_RADIUS) {
+    const over = l - JOY_RADIUS;
+    joy.ox += dx / l * over; joy.oy += dy / l * over;
+    dx = e.clientX - joy.ox; dy = e.clientY - joy.oy;
+  }
+  joy.dx = dx; joy.dy = dy;
+  if (state === 'play' || state === 'intro') joyShow();
+});
+function joyEnd(e) {
+  if (e && e.pointerId !== joy.id) return;
+  joy = { id: null, ox: 0, oy: 0, dx: 0, dy: 0 };
+  joyEl.hidden = true;
+}
+canvas.addEventListener('pointerup', joyEnd); canvas.addEventListener('pointercancel', joyEnd);
+
+function playerInput() {
+  // Keyboard fallback
+  let x = 0, z = 0;
+  if (keys.KeyA || keys.ArrowLeft) x -= 1;
+  if (keys.KeyD || keys.ArrowRight) x += 1;
+  if (keys.KeyW || keys.ArrowUp) z -= 1;
+  if (keys.KeyS || keys.ArrowDown) z += 1;
+  if (x || z) { const l = Math.hypot(x, z); return { x: x / l, z: z / l, t: 1 }; }
+  if (locked) {
+    if (!lockHeld) return { x: 0, z: 0, t: 0 };
+    const ll = Math.hypot(lockJoy.dx, lockJoy.dy);
+    if (ll < JOY_DEAD * 1.5) return { x: 0, z: 0, t: 0 };
+    return { x: lockJoy.dx / ll, z: lockJoy.dy / ll, t: Math.min(1, (ll - JOY_DEAD * 1.5) / (LOCK_RADIUS - JOY_DEAD * 1.5)) };
+  }
+  if (joy.id === null) return { x: 0, z: 0, t: 0 };
+  const l = Math.hypot(joy.dx, joy.dy);
+  if (l < JOY_DEAD) return { x: 0, z: 0, t: 0 };
+  // Camera looks straight down -Z, so screen right = +X and screen down = +Z.
+  return { x: joy.dx / l, z: joy.dy / l, t: Math.min(1, (l - JOY_DEAD) / (JOY_RADIUS - JOY_DEAD)) };
+}
+function enableTouch() { document.body.classList.add('is-touch'); }
+if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) enableTouch();
+window.addEventListener('touchstart', enableTouch, { once: true, passive: true });
+
+$('mute').addEventListener('click', () => {
+  muted = !muted;
+  $('mute').textContent = muted ? 'Âm thanh: tắt' : 'Âm thanh: bật';
+});
+
+// ---------- Game state ----------
+let state = 'menu', level = 1, introT = 0, endT = 0, shake = 0, knocked = 0, runKnocked = 0;
+let best = 1;
+try { best = parseInt(localStorage.getItem('sungchien-best') || '1', 10) || 1; } catch (e) {}
+
+// ---------- Campaign: 10 levels, each with one or two goat types ----------
+const LEVELS = [
+  { name: 'Tân binh', radius: 11, spawn: [['linh', 2]],
+    tip: 'Hai Dê Lính. Chúng vòng vào phía trong rồi lao ra; né sang ngang rồi húc vào hông.' },
+  { name: 'Tiểu đội', radius: 10.7, spawn: [['linh', 3]],
+    tip: 'Ba Dê Lính. Đừng để bị kẹp giữa hai con, luôn giữ một hướng thoát.' },
+  { name: 'Liều mạng', radius: 10.4, spawn: [['lieu', 2]],
+    tip: 'Dê Húc Liều cào chân trước khi lao. Né đòn, rồi húc nó lúc nó vừa phanh gấp ở mép.' },
+  { name: 'Hỗn chiến', radius: 10.1, spawn: [['linh', 2], ['lieu', 1]],
+    tip: 'Lính quấy rối, Húc Liều chờ thời. Luôn để mắt tới con đang cào chân.' },
+  { name: 'Tảng đá', radius: 9.8, spawn: [['da', 1], ['linh', 2]],
+    tip: 'Đá Tảng nặng gấp đôi rưỡi, đừng húc trực diện. Dọn Lính trước, rồi dụ Đá Tảng ra gần mép.' },
+  { name: 'Bóng ma', radius: 9.6, spawn: [['lanh', 2]],
+    tip: 'Dê Lanh né khi thấy bạn lao thẳng. Giả lao để nó né, rồi húc vào lúc nó vừa né xong.' },
+  { name: 'Cả bầy', radius: 9.4, spawn: [['bay', 6]],
+    tip: 'Hai bầy, mỗi bầy ba con đi theo đội hình. Húc con đầu đàn cho cả đội đâm vào nhau.' },
+  { name: 'Kẻ rình rập', radius: 9.2, spawn: [['rinh', 2], ['lanh', 1]],
+    tip: 'Dê Rình chờ ở tâm và lao khi bạn đứng gần mép. Đừng đứng lâu ở rìa.' },
+  { name: 'Búa và đe', radius: 9.0, spawn: [['da', 1], ['lieu', 2]],
+    tip: 'Đá Tảng ủi bạn ra mép, Húc Liều chực sẵn để lao tới. Giữ mình ở giữa sân.' },
+  { name: 'Đầu Đàn', radius: 9.0, spawn: [['dau', 1], ['linh', 3]],
+    tip: 'Đầu Đàn tăng tốc cho dê quanh nó và ra lệnh tấn công cùng lúc. Hạ lính trước khi bị vây.' },
+];
+function startLevel(n) {
+  level = n; mode = 'campaign';
+  const L = LEVELS[n - 1];
+  $('hudLevelLabel').textContent = 'Màn'; $('toMenu').hidden = false; $('spawnBtn').hidden = true;
+  clearGoats();
+  buildPillar(L.radius);
+  player = spawnGoat(true, 0, R * 0.15);
+  // Lay the enemies out around the ring, facing the player; a Dê Bầy entry spawns squads of three.
+  const slots = [];
+  for (const [type, count] of L.spawn) {
+    if (type === 'bay') for (let k = 0; k < count / 3; k++) slots.push({ type, squad: ++squadSeq });
+    else for (let k = 0; k < count; k++) slots.push({ type });
+  }
+  slots.forEach((sl, i) => {
+    const a = (i / slots.length) * Math.PI * 2 - Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+    const d = R * (sl.type === 'dau' || sl.type === 'da' ? 0.45 : 0.6);
+    const x = Math.cos(a) * d, z = Math.sin(a) * d;
+    const fa = Math.atan2(player.x - x, player.z - z);
+    const n = sl.squad ? 3 : 1;
+    for (let k = 0; k < n; k++) {
+      const side = k % 2 ? -1 : 1, back = k ? 1.5 : 0, wide = k ? 1.3 : 0;
+      const gx = x - Math.sin(fa) * back + Math.cos(fa) * wide * side, gz = z - Math.cos(fa) * back - Math.sin(fa) * wide * side;
+      const g = spawnGoat(false, gx, gz, false, sl.type);
+      g.face = fa; if (sl.squad) g.squad = sl.squad;
+      dropIn(g);
+    }
+  });
+  knocked = 0;
+  state = 'intro'; introT = 2.2;
+  $('overlay').hidden = true;
+  $('hud').hidden = false;
+  $('hint').hidden = false;
+  updateHint();
+  lockJoy = { dx: 0, dy: 0 };
+  $('touchUi').hidden = false;
+  $('hudLevel').textContent = n + '/' + LEVELS.length;
+  showBanner('MÀN ' + n, L.name);
+  renderPips();
+}
+function enemies() { return goats.filter(g => !g.isPlayer); }
+function renderPips() {
+  if (mode === 'test') {
+    const live = enemies().filter(e => e.alive && !e.falling);
+    $('hudLeftLabel').textContent = live.length ? `${live.length} dê địch trên sân` : 'Sân trống · bấm Space';
+    $('pips').innerHTML = live.map(() => '<span class="pip"></span>').join('');
+    return;
+  }
+  const es = enemies();
+  const left = es.filter(e => !e.falling).length;
+  $('hudLeftLabel').textContent = left > 0 ? `Còn ${left} đối thủ` : 'Sạch đỉnh núi';
+  const pips = $('pips');
+  pips.innerHTML = '';
+  es.forEach(e => {
+    const d = document.createElement('span');
+    d.className = 'pip' + (e.falling ? ' gone' : '');
+    if (e.boss) { d.style.width = '20px'; d.style.height = '20px'; d.style.background = e.falling ? '' : 'var(--danger)'; }
+    pips.appendChild(d);
+  });
+}
+let bannerTimer = 0;
+function showBanner(text, sub) {
+  $('bannerText').textContent = text;
+  $('bannerSub').textContent = sub || '';
+  const b = $('banner'); b.hidden = false;
+  const s = $('bannerText'); s.style.animation = 'none'; void s.offsetWidth; s.style.animation = '';
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { b.hidden = true; }, sub ? 1900 : 1100);
+}
+function showOverlay(kind) {
+  releaseLock();
+  $('hud').hidden = true; $('hint').hidden = true; $('touchUi').hidden = true; $('spawnBtn').hidden = true;
+  const ov = $('overlay'); ov.hidden = false;
+  const stats = $('ovStats');
+  $('ovKeys').hidden = true;
+  if (kind === 'clear' && level >= LEVELS.length) {
+    // Beat the whole campaign.
+    kind = 'won';
+    $('ovEyebrow').textContent = `Hoàn thành ${LEVELS.length} màn`;
+    $('ovTitle').textContent = 'GOAT của đỉnh núi';
+    $('ovText').textContent = 'Bạn đã hạ cả Dê Đầu Đàn. Không còn con dê nào dám đứng trên cột đá này.';
+    stats.hidden = false;
+    stats.innerHTML = `<div class="stat"><b>${runKnocked}</b><span>Tổng hất văng</span></div><div class="stat"><b>${LEVELS.length}/${LEVELS.length}</b><span>Màn</span></div>`;
+    $('ovBtn').textContent = 'Chơi lại từ màn 1';
+    $('ovBtn2').textContent = 'Về menu';
+    $('ovBtn2').hidden = false;
+  } else if (kind === 'clear') {
+    const next = LEVELS[level];
+    $('ovEyebrow').textContent = `Màn ${level} · hoàn thành`;
+    $('ovTitle').textContent = 'Đỉnh núi là của bạn';
+    $('ovText').textContent = `Màn ${level + 1}: ${next.name}. ${next.tip}`;
+    stats.hidden = false;
+    stats.innerHTML = `<div class="stat"><b>${knocked}</b><span>Hất văng màn này</span></div><div class="stat"><b>${runKnocked}</b><span>Tổng cả lượt</span></div>`;
+    $('ovBtn').textContent = 'Màn ' + (level + 1);
+    $('ovBtn2').hidden = true;
+  } else {
+    $('ovEyebrow').textContent = `Rơi ở màn ${level}`;
+    $('ovTitle').textContent = 'Beeeeeh…';
+    $('ovText').textContent = 'Bạn đã rơi xuống mây. Mẹo: thả cần điều khiển để phanh, hoặc kéo ngược lại để dừng gấp trước khi tới mép.';
+    stats.hidden = false;
+    stats.innerHTML = `<div class="stat"><b>${runKnocked}</b><span>Đã hất văng</span></div><div class="stat"><b>${best}</b><span>Màn cao nhất</span></div>`;
+    $('ovBtn').textContent = 'Thử lại màn ' + level;
+    $('ovBtn2').textContent = 'Chơi lại từ đầu';
+    $('ovBtn2').hidden = level === 1;
+  }
+  state = kind;
+  setTimeout(() => $('ovBtn').focus({ preventScroll: true }), 50);
+}
+$('ovBtn').addEventListener('click', () => {
+  audio();
+  requestLock();
+  if (state === 'menu') { startTest(); return; }
+  else if (state === 'clear') startLevel(level + 1);
+  else if (state === 'won') { runKnocked = 0; startLevel(1); }
+  else if (state === 'over') startLevel(level);
+});
+$('ovBtn2').addEventListener('click', () => {
+  if (state === 'won') { showMenu(); return; }
+  audio(); requestLock(); runKnocked = 0; startLevel(1);
+});
+
+// ---------- Test mode: player alone, Space drops enemy goats in with a spawn effect ----------
+let mode = 'menu', respawnT = 0;
+const DROP_HEIGHT = 14, TEST_MAX = 12;
+const fxList = [];
+function spawnWhistle() {
+  const c = audio(); if (!c) return;
+  const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(320, t); o.frequency.exponentialRampToValueAtTime(980, t + 0.35);
+  g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.42);
+}
+// Light beam from the sky plus a target ring on the ground where the goat will land.
+function spawnBeam(x, z, color) {
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 18, 24, 1, true),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  beam.position.set(x, 9, z); scene.add(beam);
+  const mark = new THREE.Mesh(new THREE.RingGeometry(0.75, 1.0, 40),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
+  mark.rotation.x = -Math.PI / 2; mark.position.set(x, 0.06, z); scene.add(mark);
+  fxList.push({ kind: 'beam', meshes: [beam, mark], t: 0, max: 0.95 });
+}
+// Landing: expanding shockwave ring, dust, sparks, a thud and a little shake.
+function landFx(x, z, color, big) {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 1.15, 48),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.07, z); scene.add(ring);
+  fxList.push({ kind: 'shock', meshes: [ring], t: 0, max: 0.5, grow: big ? 5 : 3.6 });
+  burst(x, 0.2, z, big ? 20 : 14, 'dust', big ? 1.6 : 1.2);
+  burst(x, 0.8, z, 6, 'hit', 0.8);
+  thump(big ? 1 : 0.6);
+  shake = Math.max(shake, big ? 0.45 : 0.22);
+}
+function updateFx(dt) {
+  for (let i = fxList.length - 1; i >= 0; i--) {
+    const f = fxList[i]; f.t += dt;
+    const k = Math.min(1, f.t / f.max);
+    if (f.kind === 'beam') {
+      f.meshes[0].material.opacity = 0.5 * (1 - k);
+      f.meshes[0].scale.set(1 - k * 0.7, 1, 1 - k * 0.7);
+      f.meshes[1].material.opacity = 0.9 * (1 - k * k);
+      f.meshes[1].scale.setScalar(1 + Math.sin(f.t * 18) * 0.06);
+    } else {
+      const s = 1 + (f.grow - 1) * (1 - Math.pow(1 - k, 3));
+      f.meshes[0].scale.set(s, s, 1);
+      f.meshes[0].material.opacity = 0.9 * (1 - k);
+    }
+    if (f.t >= f.max) {
+      f.meshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+      fxList.splice(i, 1);
+    }
+  }
+}
+// Put a goat in the sky above (x, z); it drops and lands with an effect.
+function dropIn(g) {
+  g.drop = true; g.y = DROP_HEIGHT; g.vy = -6; g.vx = 0; g.vz = 0;
+  g.mesh.group.position.set(g.x, g.y, g.z);
+  spawnBeam(g.x, g.z, g.isPlayer ? 0xf2c14e : 0xff8a4c);
+  spawnWhistle();
+}
+function freeSpot() {
+  let best = null, bestScore = -1;
+  for (let i = 0; i < 24; i++) {
+    const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * R * 0.78;
+    const x = Math.cos(a) * d, z = Math.sin(a) * d;
+    let near = 1e9;
+    for (const o of goats) if (o.alive && !o.falling) near = Math.min(near, Math.hypot(o.x - x, o.z - z) - (o.isPlayer ? 2 : 0));
+    if (near > 2.5) return { x, z };
+    if (near > bestScore) { bestScore = near; best = { x, z }; }
+  }
+  return best;
+}
+// AI types available in test mode. Only the basic soldier exists for now.
+const AI_TYPES = {
+  linh: { name: 'Dê Lính' },
+  lieu: { name: 'Dê Húc Liều' },
+  da: { name: 'Dê Đá Tảng' },
+  lanh: { name: 'Dê Lanh' },
+  rinh: { name: 'Dê Rình' },
+  bay: { name: 'Dê Bầy' },
+  dau: { name: 'Dê Đầu Đàn' },
+};
+let squadSeq = 0;
+function spawnTestGoat(type) {
+  type = type || 'linh';
+  const live = enemies().filter(e => e.alive && !e.falling).length;
+  const n = type === 'bay' ? 3 : 1;
+  if (live + n > TEST_MAX) { if (player) popText('Tối đa ' + TEST_MAX + ' con', player.x, 3, player.z, '#ff5d6c'); return; }
+  const p = freeSpot();
+  const squad = ++squadSeq;
+  const fa = Math.atan2(player ? player.x - p.x : -p.x, player ? player.z - p.z : -p.z);
+  for (let k = 0; k < n; k++) {
+    // A squad lands in a wedge: leader in front, the others behind on each side.
+    const side = k % 2 ? -1 : 1, back = k ? 1.5 : 0, wide = k ? 1.3 : 0;
+    const x = p.x - Math.sin(fa) * back + Math.cos(fa) * wide * side, z = p.z - Math.cos(fa) * back - Math.sin(fa) * wide * side;
+    const g = spawnGoat(false, x, z, false, type);
+    g.face = fa; g.squad = squad;
+    dropIn(g);
+  }
+  popText(AI_TYPES[type].name, p.x, 3.2, p.z, '#ffcc33');
+  renderPips();
+}
+function respawnPlayer() {
+  player = spawnGoat(true, 0, 0);
+  dropIn(player);
+}
+function startTest() {
+  mode = 'test'; level = 1; respawnT = 0;
+  clearGoats();
+  buildPillar(11);
+  respawnPlayer();
+  knocked = 0;
+  state = 'play';
+  $('overlay').hidden = true;
+  $('hud').hidden = false;
+  $('hint').hidden = false;
+  $('toMenu').hidden = false;
+  updateHint();
+  lockJoy = { dx: 0, dy: 0 };
+  $('touchUi').hidden = false;
+  $('spawnBtn').hidden = false;
+  $('hudLevelLabel').textContent = 'Chế độ';
+  $('hudLevel').textContent = 'TEST';
+  showBanner('TEST');
+  renderPips();
+}
+function showMenu() {
+  releaseLock();
+  mode = 'menu'; state = 'menu';
+  $('hud').hidden = true; $('hint').hidden = true; $('touchUi').hidden = true; $('spawnBtn').hidden = true;
+  $('overlay').hidden = false;
+  $('ovEyebrow').textContent = 'Đỉnh cột đá · trên mây';
+  $('ovTitle').textContent = 'Sừng Chiến';
+  $('ovText').textContent = MENU_TEXT;
+  $('ovStats').hidden = true;
+  $('ovKeys').hidden = false;
+  $('ovBtn').textContent = 'Chế độ test';
+  $('ovBtn2').textContent = 'Chơi theo màn';
+  $('ovBtn2').hidden = false;
+  setTimeout(() => $('ovBtn').focus({ preventScroll: true }), 50);
+}
+const MENU_TEXT = $('ovText').textContent;
+$('toMenu').addEventListener('click', e => { e.stopPropagation(); showMenu(); });
+$('spawnBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audio(); if (mode === 'test' && state === 'play') spawnTestGoat(); });
+
+// ---------- AI ----------
+// Every other ball is on the enemy team: they only ever hunt the player.
+function pickTarget(g) {
+  return player && !player.falling && player.alive ? player : null;
+}
+function aiAccel(g) {
+  const lv = Math.min(12, level), buff = auraBuff(g);
+  if (TYPE_PARAMS[g.type]) return TYPE_PARAMS[g.type].accel * buff;
+  if (g.type === 'linh') return (LINH_ACCEL + lv * 0.3) * buff;
+  if (g.type === 'lieu') return LIEU_ACCEL * buff;
+  return (g.boss ? 12 : 11 + lv * 0.6) * buff;
+}
+// ---------- AI for Đá Tảng, Lanh, Rình, Bầy, Đầu Đàn ----------
+// True only when the goat is on a real collision course with the player (or already shoving them):
+// then it commits and ignores the rim. Anything else and it brakes like everyone else.
+function pushingTarget(g) {
+  const t = liveTarget(); if (!t) return false;
+  const dx = t.x - g.x, dz = t.z - g.z, d = Math.hypot(dx, dz) || 0.001;
+  const touch = g.r + t.r;
+  const sp = Math.hypot(g.vx, g.vz);
+  if (sp < 0.5) return d < touch + 0.4;                 // standing shove
+  const ux = g.vx / sp, uz = g.vz / sp;
+  const ahead = dx * ux + dz * uz;                     // player in front along our path
+  const lateral = Math.abs(dx * uz - dz * ux);         // how far the player is off our line
+  return ahead > -0.2 && ahead < 12 && lateral < touch + 0.25;
+}
+function liveTarget() { return player && player.alive && !player.falling && !player.drop ? player : null; }
+// If coasting on would carry the goat past the rim, return a brake input.
+function edgeGuard(g, acc, margin) {
+  const sp = Math.hypot(g.vx, g.vz);
+  if (sp < 1.5 || g.noSave > 0 || pushingTarget(g)) return null;
+  const stop = sp * sp / (2 * acc);
+  const px = g.x + g.vx / sp * stop, pz = g.z + g.vz / sp * stop;
+  return Math.hypot(px, pz) > R - margin ? { x: -g.vx / sp, z: -g.vz / sp, t: Math.min(1, sp / 4) } : null;
+}
+function toCenter(g, thr) {
+  const rc = Math.hypot(g.x, g.z);
+  if (rc < 0.6) return { x: 0, z: 0, t: 0 };
+  return { x: -g.x / rc, z: -g.z / rc, t: Math.min(1, rc / 2) * thr };
+}
+function steer(dx, dz, t) { const l = Math.hypot(dx, dz) || 1; return { x: dx / l, z: dz / l, t }; }
+
+// Đá Tảng: never charges. Holds the middle and bulldozes the player whenever they come close.
+function daControl(g, dt) {
+  const t = liveTarget(), acc = aiAccel(g);
+  const eg = edgeGuard(g, acc, 1.5); if (eg) return eg;
+  if (!t) return toCenter(g, 0.5);
+  const toX = t.x - g.x, toZ = t.z - g.z, dist = Math.hypot(toX, toZ) || 0.001;
+  if (dist < 6) return steer(toX, toZ, 1);
+  // Creep from the middle toward the player's side, ready to bulldoze them toward the rim.
+  const pr = Math.hypot(t.x, t.z) || 1;
+  const dx = t.x / pr * 3 - g.x, dz = t.z / pr * 3 - g.z, l = Math.hypot(dx, dz);
+  if (l < 0.6) return { x: 0, z: 0, t: 0 };
+  return steer(dx, dz, Math.min(1, l / 2) * 0.8);
+}
+
+// Dê Lanh: circles at a distance, sidesteps the player's charge, then strikes the flank.
+function lanhControl(g, dt) {
+  const ai = g.ai; ai.t -= dt;
+  const t = liveTarget(), acc = aiAccel(g);
+  if (ai.mode === 'approach') { ai.mode = 'orbit'; ai.dir = Math.random() < 0.5 ? 1 : -1; ai.t = 2 + Math.random() * 2; }
+  if (!t) return toCenter(g, 0.5);
+  const toX = t.x - g.x, toZ = t.z - g.z, dist = Math.hypot(toX, toZ) || 0.001;
+  if (ai.mode !== 'dodge' && ai.mode !== 'strike') {
+    const eg = edgeGuard(g, acc, 1.6); if (eg) return eg;
+    const pv = Math.hypot(t.vx, t.vz);
+    const closing = (t.vx * -toX + t.vz * -toZ) / dist;      // player's speed straight at us
+    // React on time-to-impact rather than distance, so a fast charge is spotted early.
+    if (closing > 5 && dist / closing < 0.8 && pv > 0.1) {
+      let sx = -t.vz / pv, sz = t.vx / pv;
+      const lateral = -toX * sx + -toZ * sz;                  // which side of the charge line we're on
+      if (Math.abs(lateral) > 0.3) { if (lateral < 0) { sx = -sx; sz = -sz; } }
+      else if (sx * -g.x + sz * -g.z < 0) { sx = -sx; sz = -sz; }  // dead ahead: dodge toward the middle
+      ai.mode = 'dodge'; ai.t = 0.35; ai.dx = sx; ai.dz = sz;
+      // A quick sidestep hop.
+      burst(g.x, 0.15, g.z, 4, 'dust', 0.6);
+    }
+  }
+  if (ai.mode === 'dodge') {
+    if (ai.t <= 0) { ai.mode = 'strike'; ai.t = 0.9; }
+    return { x: ai.dx, z: ai.dz, t: 1 };
+  }
+  if (ai.mode === 'strike') {
+    if ((g.hitCd > 0 && ai.t < 0.85 && !pushingTarget(g)) || ai.t <= 0) { ai.mode = 'orbit'; ai.t = 1.5 + Math.random() * 1.5; ai.dir = -(ai.dir || 1); }
+    const eg = edgeGuard(g, acc, 0.8); if (eg) return eg;
+    return steer(t.x + t.vx * 0.25 - g.x, t.z + t.vz * 0.25 - g.z, 1);
+  }
+  // Orbit around the player at about 5.5 m, staying off the rim.
+  const rx = -toX / dist, rz = -toZ / dist;
+  const tx = -rz * ai.dir, tz = rx * ai.dir;
+  const radial = (dist - 5.5) * 0.6;
+  let dx = tx - rx * radial, dz = tz - rz * radial;
+  const rc = Math.hypot(g.x, g.z) || 0.001;
+  if (rc > R - 3) { const w = (rc - (R - 3)) * 0.8; dx -= g.x / rc * w; dz -= g.z / rc * w; }
+  if (ai.t <= 0) {
+    if (Math.hypot(t.vx, t.vz) < 3 && dist < 8) { ai.mode = 'strike'; ai.t = 0.9; }
+    else { ai.dir = -ai.dir; ai.t = 2 + Math.random() * 2; }
+  }
+  return steer(dx, dz, 0.75);
+}
+
+// Dê Rình: waits in the middle watching; the moment the player is near the rim, it pounces.
+function rinhControl(g, dt) {
+  const ai = g.ai; ai.t -= dt; g.faceTo = undefined;
+  const t = liveTarget(), acc = aiAccel(g), sp = Math.hypot(g.vx, g.vz);
+  if (ai.mode === 'approach') ai.mode = 'wait';
+  if (!t) return toCenter(g, 0.5);
+  const toX = t.x - g.x, toZ = t.z - g.z, dist = Math.hypot(toX, toZ) || 0.001;
+  if (ai.mode === 'attack') {
+    const homing = dist > 4 ? 0.3 : 0.05;
+    let dx = ai.dx * (1 - homing) + toX / dist * homing, dz = ai.dz * (1 - homing) + toZ / dist * homing;
+    const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; ai.dx = dx; ai.dz = dz;
+    const ahead = toX * dx + toZ * dz;
+    if ((g.hitCd > 0 && ai.t < 2.4 && !pushingTarget(g)) || ahead < -1 || ai.t <= 0) ai.mode = 'return';
+    const eg = edgeGuard(g, acc, 0.9); if (eg) { ai.mode = 'return'; return eg; }
+    return { x: dx, z: dz, t: 1 };
+  }
+  const eg = edgeGuard(g, acc, 1.5); if (eg) return eg;
+  if (ai.mode === 'return' && Math.hypot(g.x, g.z) < 1.4 && sp < 2) ai.mode = 'wait';
+  if (ai.mode === 'wait') {
+    g.faceTo = Math.atan2(toX, toZ);
+    if ((Math.hypot(t.x, t.z) > R - 2.6 && dist < 13) || dist < 2.4) {
+      ai.mode = 'attack'; ai.t = 2.5; ai.dx = toX / dist; ai.dz = toZ / dist;
+      popText('!', g.x, 2.6, g.z, '#ffd23a');
+    }
+  }
+  const rc = Math.hypot(g.x, g.z);
+  if (rc < 0.5) return sp > 0.2 ? { x: -g.vx / sp, z: -g.vz / sp, t: Math.min(1, sp / 4) } : { x: 0, z: 0, t: 0 };
+  let dx = -g.x / rc, dz = -g.z / rc;
+  if (rc < 2) { dx -= g.vx * 0.3; dz -= g.vz * 0.3; }
+  return steer(dx, dz, Math.min(1, rc / 2) * 0.8);
+}
+
+// Dê Bầy: the first live member leads (using the soldier AI); the others hold a wedge behind it.
+function squadOf(g) { return goats.filter(o => o.alive && !o.falling && !o.drop && o.type === 'bay' && o.squad === g.squad); }
+function isSquadLeader(g) { const s = squadOf(g); return !s.length || s[0] === g; }
+function bayFollow(g, dt) {
+  const members = squadOf(g), L = members[0], slot = members.indexOf(g);
+  let fx, fz;
+  const hl = Math.hypot(L.vx, L.vz);
+  if (hl > 1) { fx = L.vx / hl; fz = L.vz / hl; }
+  else { const t = liveTarget(); if (t) { fx = t.x - L.x; fz = t.z - L.z; const l = Math.hypot(fx, fz) || 1; fx /= l; fz /= l; } else { fx = 0; fz = 1; } }
+  const side = slot % 2 ? -1 : 1, back = 1.5 * Math.ceil(slot / 2), wide = 1.3;
+  const gx = L.x - fx * back - fz * wide * side, gz = L.z - fz * back + fx * wide * side;
+  const charging = L.ai.mode === 'attack';
+  if (!charging) { const eg = edgeGuard(g, aiAccel(g), 1.4); if (eg) return eg; }
+  const dvx = L.vx + (gx - g.x) * 3 - g.vx, dvz = L.vz + (gz - g.z) * 3 - g.vz, l = Math.hypot(dvx, dvz);
+  if (l < 0.1) return { x: 0, z: 0, t: 0 };
+  return { x: dvx / l, z: dvz / l, t: Math.min(1, l / 3) };
+}
+
+// Dê Đầu Đàn: every few seconds orders the two nearest goats to attack together.
+function dauCommand(g, dt) {
+  const ai = g.ai; ai.cmd = (ai.cmd === undefined ? 3 : ai.cmd) - dt;
+  if (ai.cmd > 0) return;
+  ai.cmd = 6;
+  const t = liveTarget(); if (!t) return;
+  const allies = goats.filter(o => o !== g && !o.isPlayer && o.alive && !o.falling && !o.drop && o.type !== 'da')
+    .sort((a, b) => Math.hypot(a.x - g.x, a.z - g.z) - Math.hypot(b.x - g.x, b.z - g.z)).slice(0, 2);
+  if (!allies.length) return;
+  popText('TẤN CÔNG!', g.x, 4, g.z, '#ff5d6c');
+  for (const o of allies) {
+    const dx = t.x - o.x, dz = t.z - o.z, d = Math.hypot(dx, dz) || 1;
+    o.ai.dx = dx / d; o.ai.dz = dz / d;
+    if (o.type === 'lieu') { o.ai.mode = 'windup'; o.ai.t = 0.35; }
+    else if (o.type === 'lanh') { o.ai.mode = 'strike'; o.ai.t = 0.9; }
+    else { o.ai.mode = 'attack'; o.ai.t = o.type === 'linh' ? 3.5 : 1.4; }
+    popText('!', o.x, 2.6, o.z, '#ff5d6c');
+  }
+}
+// Speed bonus for goats inside a leader's aura; a leader left alone gets angrier.
+function auraBuff(g) {
+  if (g.type === 'dau') return enemies().some(o => o !== g && o.alive && !o.falling) ? 1 : 1.35;
+  for (const o of goats) if (o.type === 'dau' && o.alive && !o.falling && Math.hypot(o.x - g.x, o.z - g.z) < DAU_AURA) return 1.25;
+  return 1;
+}
+
+// Dê Húc Liều: backs off to the far side, paws the ground, then charges in a dead-straight line.
+// It barely turns or brakes once moving, so a late sidestep at the rim sends it into the void.
+function lieuControl(g, dt) {
+  const ai = g.ai; ai.t -= dt; g.faceTo = undefined;
+  const t = player && player.alive && !player.falling && !player.drop ? player : null;
+  const sp = Math.hypot(g.vx, g.vz);
+  // Brake input eases off as it slows, so it doesn't overshoot zero and rock back and forth.
+  const brake = () => sp > 0.15 ? { x: -g.vx / sp, z: -g.vz / sp, t: Math.min(1, sp / 4) } : { x: 0, z: 0, t: 0 };
+  if (!t) { if (ai.mode !== 'overshoot' && ai.mode !== 'edgebrake') ai.mode = 'recover'; }
+  if (ai.mode === 'approach') { ai.mode = 'runup'; ai.t = 0; }
+
+  // Edge sense: on its own momentum it always sees the rim coming and slams the brakes hard.
+  // Only a fresh shove from the player (noSave) can carry it over.
+  if ((ai.mode === 'charge' || ai.mode === 'overshoot' || ai.mode === 'recover' || ai.mode === 'runup') && sp > 2 && !(g.noSave > 0) && !pushingTarget(g)) {
+    const stop = sp * sp / (2 * LIEU_ACCEL * LIEU_EDGE_BRAKE);
+    const px = g.x + g.vx / sp * stop, pz = g.z + g.vz / sp * stop;
+    if (Math.hypot(px, pz) > R - 1.0) ai.mode = 'edgebrake';
+  }
+  if (ai.mode === 'edgebrake') {
+    if (sp < 0.8) { ai.mode = 'recover'; ai.t = 1.0; }
+    return brake();
+  }
+
+  if (ai.mode === 'runup') {
+    // Head for the point across the arena from the player, as far away as the top allows.
+    const pr = Math.hypot(t.x, t.z);
+    let ox, oz;
+    if (pr > 1) { ox = -t.x / pr; oz = -t.z / pr; }
+    else { const d = Math.hypot(g.x - t.x, g.z - t.z) || 1; ox = (g.x - t.x) / d; oz = (g.z - t.z) / d; }
+    const gx = ox * R * 0.62, gz = oz * R * 0.62;
+    let dx = gx - g.x, dz = gz - g.z;
+    const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+    // Jog back at a modest pace (its brakes are poor, so it doesn't sprint here).
+    let thr = sp > 7 ? 0 : Math.min(1, l / 4) * 0.7;
+    if (l < 3.5) { dx -= g.vx * 0.35; dz -= g.vz * 0.35; thr = Math.max(thr, 0.6); }
+    if ((l < 1.4 && sp < 2.5) || ai.t < -5) { ai.mode = 'windup'; ai.t = LIEU_WINDUP; }
+    const ll = Math.hypot(dx, dz) || 1;
+    return { x: dx / ll, z: dz / ll, t: thr };
+  }
+  if (ai.mode === 'windup') {
+    // Stand, face the player and paw the ground: the tell before the charge.
+    const dx = t.x - g.x, dz = t.z - g.z, d = Math.hypot(dx, dz) || 1;
+    g.faceTo = Math.atan2(dx, dz);
+    // Planted: feet dug in while pawing, so leftover drift dies out smoothly.
+    const plant = Math.exp(-10 * dt); g.vx *= plant; g.vz *= plant;
+    if (Math.random() < dt * 16) burst(g.x - dx / d * 0.8, 0.1, g.z - dz / d * 0.8, 1, 'dust', 0.5);
+    // Snorting steam from the nostrils.
+    if (Math.random() < dt * 10) burst(g.x + dx / d * 0.75, 1.0, g.z + dz / d * 0.75, 1, 'steam', 0.25);
+    if (ai.t <= 0) { ai.mode = 'charge'; ai.dx = dx / d; ai.dz = dz / d; ai.t = 3.2; whoosh(0.6); }
+    return brake();
+  }
+  if (ai.mode === 'charge') {
+    // Locked heading, full throttle, no edge check at all.
+    const ahead = (t.x - g.x) * ai.dx + (t.z - g.z) * ai.dz;
+    if (g.hitCd > 0 && ai.t < 3.1 && !pushingTarget(g)) { ai.mode = 'recover'; ai.t = 1.4; }
+    else if (ahead < -1) { ai.mode = 'overshoot'; ai.t = 0.9; }
+    else if (ai.t <= 0) { ai.mode = 'recover'; ai.t = 1.4; }
+    return { x: ai.dx, z: ai.dz, t: 1 };
+  }
+  if (ai.mode === 'overshoot') {
+    if (ai.t <= 0) { ai.mode = 'recover'; ai.t = 1.4; }
+    return { x: ai.dx, z: ai.dz, t: 0.6 };
+  }
+  // recover: try (badly) to stop, then drift back toward the middle before the next run-up.
+  if (sp > 1.5) return brake();
+  if (ai.t <= 0 && t) { ai.mode = 'runup'; ai.t = 0; }
+  const rc = Math.hypot(g.x, g.z) || 1;
+  return { x: -g.x / rc, z: -g.z / rc, t: rc > 2 ? 0.4 : 0 };
+}
+// Returns a unit direction and throttle (0..1); the ball accelerates that way.
+function aiControl(g, dt) {
+  if (g.type === 'lieu') return lieuControl(g, dt);
+  if (g.type === 'da') return daControl(g, dt);
+  if (g.type === 'lanh') return lanhControl(g, dt);
+  if (g.type === 'rinh') return rinhControl(g, dt);
+  if (g.type === 'bay' && !isSquadLeader(g)) return bayFollow(g, dt);
+  if (g.type === 'dau') dauCommand(g, dt);
+  const ai = g.ai;
+  ai.retarget -= dt; ai.t -= dt; ai.wander += dt;
+  if (!ai.target || ai.target.falling || ai.retarget <= 0) { ai.target = pickTarget(g); ai.retarget = 2.5 + Math.random() * 3; }
+  const t = ai.target;
+  const smart = Math.min(1, 0.25 + level * 0.12);
+  const acc = aiAccel(g);
+  const sp = Math.hypot(g.vx, g.vz);
+  // Braking check: where would we stop if we braked now?
+  const stopDist = sp * sp / (2 * acc);
+  const px = g.x + (sp > 0.01 ? g.vx / sp : 0) * stopDist, pz = g.z + (sp > 0.01 ? g.vz / sp : 0) * stopDist;
+  // Dê Lính notices the edge late; while charging or overshooting it doesn't check at all.
+  const margin = g.type === 'linh' ? 0.2 : 1.2 + (1 - smart) * -0.8;
+  if (Math.hypot(px, pz) > R - margin && sp > 1.5 && ai.mode !== 'attack' && ai.mode !== 'overshoot' && !pushingTarget(g)) {
+    return { x: -g.vx / sp, z: -g.vz / sp, t: 1 };
+  }
+  if (!t) { const rc0 = Math.hypot(g.x, g.z) || 1; return { x: -g.x / rc0, z: -g.z / rc0, t: rc0 > 2 ? 0.3 : 0 }; }
+  const toX = t.x - g.x, toZ = t.z - g.z, dist = Math.hypot(toX, toZ) || 0.001;
+  let dx, dz, thr = 1;
+  if (ai.mode === 'recover') {
+    const rc = Math.hypot(g.x, g.z) || 0.001;
+    dx = -g.x / rc; dz = -g.z / rc; thr = rc > R * 0.3 ? 0.8 : 0.2;
+    if (ai.t <= 0) ai.mode = 'approach';
+  } else if (ai.mode === 'attack' && g.type === 'linh') {
+    // Dê Lính: commits to the charge. It homes in lightly while far, then locks its heading
+    // for the last few meters, and it never aborts near the edge. The run lasts until it
+    // hits something or passes the player, so a dodge at the rim sends it over.
+    const homing = dist > 4 ? 0.18 : 0;
+    dx = ai.dx * (1 - homing) + (toX / dist) * homing; dz = ai.dz * (1 - homing) + (toZ / dist) * homing;
+    const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; ai.dx = dx; ai.dz = dz;
+    const ahead = toX * ai.dx + toZ * ai.dz;          // player still in front of us?
+    if (g.hitCd > 0) { ai.mode = 'recover'; ai.t = 0.8 + Math.random() * 0.6; }
+    else if (ahead < -0.6) { ai.mode = 'overshoot'; ai.t = 0.6; }
+    else if (ai.t <= 0) { ai.mode = 'recover'; ai.t = 0.8 + Math.random() * 0.6; }
+  } else if (ai.mode === 'overshoot') {
+    // Missed: momentum carries it on for a moment before it even tries to stop.
+    dx = ai.dx; dz = ai.dz; thr = 0.5;
+    if (ai.t <= 0) { ai.mode = 'recover'; ai.t = 0.8 + Math.random() * 0.6; }
+  } else if (ai.mode === 'attack') {
+    const lead = 0.3 * smart;
+    let ux = t.x + t.vx * lead - g.x, uz = t.z + t.vz * lead - g.z;
+    const l = Math.hypot(ux, uz) || 1; ux /= l; uz /= l;
+    // Trim sideways drift (relative to the line to the target) so the run stays on line,
+    // without ever turning the push into a brake.
+    if (sp > 1) {
+      const along = g.vx * ux + g.vz * uz;
+      const lx = g.vx - ux * along, lz = g.vz - uz * along;
+      ux -= lx / sp * 0.5; uz -= lz / sp * 0.5;
+    }
+    dx = ux; dz = uz;
+    // The run lasts until it connects and the player is no longer in front, it overshoots, or times out.
+    const ahead = sp > 0.5 ? (toX * g.vx + toZ * g.vz) / sp : dist;
+    if ((g.hitCd > 0 && !pushingTarget(g)) || ahead < -1 || ai.t <= 0) {
+      ai.mode = 'recover'; ai.t = Math.max(0.4, 1.4 - level * 0.07) + Math.random() * 0.6;
+    }
+  } else {
+    // Approach: sit on the center side of the target, then charge outward through it.
+    const tr = Math.hypot(t.x, t.z) || 1;
+    const back = 3 + 2 * smart;
+    const gx = t.x - (t.x / tr) * back, gz = t.z - (t.z / tr) * back;
+    dx = gx - g.x; dz = gz - g.z;
+    const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+    // Already rolling toward the player? Turn the run-up straight into the charge, keeping the speed.
+    const velAim = sp > 2 ? (g.vx * toX + g.vz * toZ) / (sp * dist) : 0;
+    // Otherwise arrive gently at the setup point.
+    thr = velAim > 0.3 ? 1 : Math.min(1, l / 3);
+    if (l < 2.5 && velAim < 0.3) { dx -= g.vx * 0.25; dz -= g.vz * 0.25; }
+    dx += Math.sin(ai.wander * 1.7) * 0.15; dz += Math.cos(ai.wander * 1.3) * 0.15;
+    // A player standing near the rim is an invitation: charge straight away.
+    const tRim = Math.hypot(t.x, t.z) > R - 3;
+    if ((l < 1.5 && sp < 3) || (velAim > 0.55 && dist < 8) || (dist < 3.5 && Math.random() < dt * 2) || (tRim && dist < 10)) {
+      ai.mode = 'attack'; ai.t = 3.2;
+      ai.dx = toX / dist; ai.dz = toZ / dist;
+    }
+  }
+  // Steer around teammates instead of ramming them.
+  for (const o of goats) {
+    if (o === g || o.isPlayer || o.falling || !o.alive || (g.squad && o.squad === g.squad)) continue;
+    const ox = g.x - o.x, oz = g.z - o.z, od = Math.hypot(ox, oz) || 0.001;
+    const reach = g.r + o.r + 1.6;
+    if (od < reach) {
+      const w = (reach - od) / reach * 2.2;
+      dx += ox / od * w; dz += oz / od * w;
+      // If closing in fast on a teammate, ease off the push.
+      const closing = -((g.vx - o.vx) * ox + (g.vz - o.vz) * oz) / od;
+      if (closing > 4) thr = Math.min(thr, 0.5);
+    }
+  }
+  const l = Math.hypot(dx, dz) || 1;
+  return { x: dx / l, z: dz / l, t: thr };
+}
+
+// ---------- Simulation: rolling spheres ----------
+const tmpV = new THREE.Vector3();
+const FRICTION = 0.7;        // rolling resistance, per second
+const ALLY_RESTITUTION = 0.2; // goats on the same team barely bounce off each other
+const RESTITUTION = 1.0;     // fully elastic bounces between balls
+const PUSH_BOOST = 1.4;      // extra kick on impact so hits send balls further
+const PLAYER_PUSH = 1.7;     // the player's hits send enemies this much further
+const LINH_BRAKE = 0.3;      // Dê Lính brakes at 30% strength once at top speed
+const LINH_MAX = 11;         // Dê Lính top speed (player tops out at 20)
+const LINH_ACCEL = 9;        // Dê Lính acceleration
+const LINH_TOP = 10;         // speed at which Dê Lính's grip is lowest
+const LINH_GRIP = 2.5;         // sideways grip when slow
+const LINH_PUSH_TAKEN = 1.15; // player's push bonus against Dê Lính (others take 1.7)
+const LINH_KNOCK_DAMP = 3;  // how fast Dê Lính sheds knockback speed above its own top speed
+const LINH_MASS = 1.25;
+const LIEU_MAX = 17;          // Húc Liều top speed
+const LIEU_ACCEL = 15;
+const LIEU_BRAKE = 0.25;      // braking strength above walking pace
+const LIEU_MASS = 1.15;      // small but dense
+const LIEU_WINDUP = 0.6;      // seconds pawing the ground before a charge
+const LIEU_KNOCK_DAMP = 1.5;
+const LIEU_PUSH_TAKEN = 1.4;
+const LIEU_EDGE_BRAKE = 1.7;  // braking multiplier when stopping at the rim
+// Per-type tuning for the remaining enemy types.
+const LANH_DODGE_ACC = 1.9;   // Dê Lanh sidesteps with extra force (still accelerates, no teleport)
+const EDGE_SAVE_BRAKE = 1.8;  // braking force multiplier when an enemy stops itself at the rim
+const RAMP_TIME = 1.0;        // seconds of straight driving for an enemy to reach full push
+const RAMP_START = 0.4;       // push strength when it first sets off
+const DAU_AURA = 5.5;         // radius of the leader's speed aura
+const TYPE_PARAMS = {
+  da:   { mass: 3.1,  scale: 1.3,  max: 6,  accel: 6,  pushTaken: 1.0, grip: 3, knockDamp: 3.5 },
+  lanh: { mass: 0.8,  scale: 0.85, max: 18, accel: 16, pushTaken: 1.5, grip: 4, knockDamp: 1.5 },
+  rinh: { mass: 1.25, scale: 1,    max: 14, accel: 12, pushTaken: 1.2, grip: 3, knockDamp: 2.5 },
+  bay:  { mass: 0.75, scale: 0.7,  max: 12, accel: 11, pushTaken: 1.5, grip: 3, knockDamp: 1.8 },
+  dau:  { mass: 3.2,  scale: 1.6,  max: 10, accel: 10, pushTaken: 1.0, grip: 3, knockDamp: 3 },
+};
+const LIEU_SCALE = 0.78;      // body size relative to a normal goat
+const LIEU_PUSH_DEALT = 1.6;  // knockback multiplier on whatever a charging Húc Liều hits
+const PLAYER_GRIP = 5;       // how fast the player sheds sideways/backward drift while steering
+const PLAYER_BRAKE = 2.4;    // how fast the player slows when the stick is released
+function update(dt) {
+  const frozen = state === 'intro';
+  for (const g of goats) {
+    if (!g.alive) continue;
+    if (g.falling) {
+      g.vy -= 32 * dt; g.y += g.vy * dt;
+      g.x += g.vx * dt; g.z += g.vz * dt;
+      g.mesh.rig.rotation.x += dt * 5; g.mesh.rig.rotation.z += dt * 3;
+      if (g.y < -50) { g.alive = false; scene.remove(g.mesh.group); }
+      continue;
+    }
+    if (g.drop) {
+      g.vy -= 45 * dt; g.y += g.vy * dt;
+      if (g.y <= 0) {
+        g.y = 0; g.vy = 0; g.drop = false; g.squash = 0.35;
+        landFx(g.x, g.z, g.isPlayer ? 0xf2c14e : 0xff8a4c, g.boss);
+        // Shove anything standing on the landing spot outward.
+        for (const o of goats) {
+          if (o === g || !o.alive || o.falling || o.drop) continue;
+          const dx = o.x - g.x, dz = o.z - g.z, d = Math.hypot(dx, dz) || 0.01;
+          if (d < 3) { const p = (3 - d) * 3; o.vx += dx / d * p; o.vz += dz / d * p; }
+        }
+      }
+      continue;
+    }
+    let inp = { x: 0, z: 0, t: 0 };
+    if (!frozen && state !== 'menu') {
+      if (g.isPlayer) { if (state === 'play') inp = playerInput(); }
+      else inp = aiControl(g, dt);
+    }
+    g.hitCd -= dt;
+    g.inX = inp.x; g.inZ = inp.z; g.inT = inp.t;
+    const acc = g.isPlayer ? g.accel : aiAccel(g);
+    let ix = inp.x * inp.t, iz = inp.z * inp.t;
+    const TPp = TYPE_PARAMS[g.type];
+    if (TPp) {
+      // Generic per-type handling: top speed, knockback shedding and steering grip.
+      const sp0 = Math.hypot(g.vx, g.vz);
+      if (sp0 > TPp.max) {
+        const keep = TPp.max + (sp0 - TPp.max) * Math.exp(-TPp.knockDamp * dt);
+        g.vx *= keep / sp0; g.vz *= keep / sp0;
+      }
+      if (sp0 > 0.5) {
+        const ux = g.vx / sp0, uz = g.vz / sp0, al = ix * ux + iz * uz;
+        if (al > 0 && sp0 >= TPp.max * auraBuff(g)) { ix -= ux * al; iz -= uz * al; }
+        if (inp.t > 0.05) {
+          const along = g.vx * inp.x + g.vz * inp.z;
+          const sx = g.vx - inp.x * along, sz = g.vz - inp.z * along;
+          const grip = 1 - Math.exp(-TPp.grip * dt);
+          g.vx -= sx * grip; g.vz -= sz * grip;
+        }
+      }
+    }
+    if (g.type === 'lieu') {
+      // Fast, turns badly, brakes badly: sideways authority and braking both shrink with speed.
+      const sp0 = Math.hypot(g.vx, g.vz);
+      if (sp0 > LIEU_MAX) {
+        const keep = LIEU_MAX + (sp0 - LIEU_MAX) * Math.exp(-LIEU_KNOCK_DAMP * dt);
+        g.vx *= keep / sp0; g.vz *= keep / sp0;
+      }
+      if (sp0 > 0.5) {
+        const ux = g.vx / sp0, uz = g.vz / sp0, al = ix * ux + iz * uz;
+        const px = ix - ux * al, pz = iz - uz * al;
+        const fast = Math.min(1, sp0 / LIEU_MAX);
+        // Weak brakes normally, but a hard stop when it sees the edge coming.
+        const edge = g.ai.mode === 'edgebrake';
+        const along = al < 0 ? al * (edge ? LIEU_EDGE_BRAKE : sp0 > 3 ? LIEU_BRAKE : 1) : (sp0 >= LIEU_MAX ? 0 : al);
+        const turn = 1 - 0.85 * fast;
+        ix = ux * along + px * turn; iz = uz * along + pz * turn;
+      }
+    }
+    if (g.type === 'linh' && g.knockT <= 0) {
+      // Grip fades with speed: below top speed Dê Lính steers and brakes almost normally,
+      // near top speed only a fraction of any push against its velocity takes effect.
+      const sp0 = Math.hypot(g.vx, g.vz);
+      // Knocked faster than it can run: dig in and bleed off the excess quickly.
+      if (sp0 > LINH_MAX) {
+        const keep = LINH_MAX + (sp0 - LINH_MAX) * Math.exp(-LINH_KNOCK_DAMP * dt);
+        g.vx *= keep / sp0; g.vz *= keep / sp0;
+      }
+      if (sp0 > 0.5) {
+        // Brakes are only weak while it is charging on its own momentum; when shoved it plants its feet.
+        const charging = g.ai.mode === 'attack' || g.ai.mode === 'overshoot';
+        const ratio = Math.min(1, sp0 / LINH_TOP), k = charging ? ratio * ratio : 0;
+        const brake = 1 - (1 - LINH_BRAKE) * k;
+        const ux = g.vx / sp0, uz = g.vz / sp0, al = ix * ux + iz * uz;
+        if (al < 0) { ix -= ux * al * (1 - brake); iz -= uz * al * (1 - brake); }
+        // Medium top speed: it can't push itself past LINH_MAX (knockback still can).
+        else if (sp0 >= LINH_MAX) { ix -= ux * al; iz -= uz * al; }
+        // Sideways grip while slow, so turns are tight before it gets going.
+        if (inp.t > 0.05) {
+          const along = g.vx * inp.x + g.vz * inp.z;
+          const sx = g.vx - inp.x * along, sz = g.vz - inp.z * along;
+          const grip = 1 - Math.exp(-LINH_GRIP * (1 - k) * dt);
+          g.vx -= sx * grip; g.vz -= sz * grip;
+        }
+      }
+    }
+    // Every goat builds speed: forward push starts gentle and ramps up the longer it keeps
+    // driving the same way. Braking and turning use the full force.
+    let accNow = acc;
+    if (!g.isPlayer) {
+      const spn = Math.hypot(g.vx, g.vz);
+      const fwd = ix * g.vx + iz * g.vz;
+      const aligned = inp.t > 0.3 && (spn < 0.5 || fwd / (spn * (Math.hypot(ix, iz) || 1)) > 0.8);
+      g.pushT = aligned ? Math.min(RAMP_TIME, (g.pushT || 0) + dt) : Math.max(0, (g.pushT || 0) - dt * 3);
+      if (spn < 0.5 || fwd > 0) accNow *= RAMP_START + (1 - RAMP_START) * (g.pushT / RAMP_TIME);
+      if (g.type === 'lanh' && g.ai.mode === 'dodge') accNow = acc * LANH_DODGE_ACC;
+    }
+    // Edge save: every enemy brakes hard before running itself off the top. It only goes over
+    // while driving into the player (pushing through) or right after the player shoved it.
+    g.edgeSaving = false;
+    if (!g.isPlayer && !(g.noSave > 0) && !pushingTarget(g)) {
+      const spn = Math.hypot(g.vx, g.vz);
+      if (spn > 1) {
+        const stop = spn * spn / (2 * acc * EDGE_SAVE_BRAKE) + spn * 0.06;
+        const px = g.x + g.vx / spn * stop, pz = g.z + g.vz / spn * stop;
+        if (Math.hypot(px, pz) > R - 0.7) {
+          g.edgeSaving = true;
+          ix = -g.vx / spn; iz = -g.vz / spn; accNow = acc * EDGE_SAVE_BRAKE;
+          const ai = g.ai, attacking = ['attack', 'charge', 'overshoot', 'strike', 'dodge'].includes(ai.mode);
+          if (attacking) {
+            ai.mode = g.type === 'lieu' ? 'edgebrake' : g.type === 'rinh' ? 'return' : g.type === 'lanh' ? 'orbit' : 'recover';
+            ai.t = 1.0;
+          }
+        }
+      }
+    }
+    // Force → acceleration. Pushing the same way keeps adding velocity; turning has to fight inertia.
+    g.vx += ix * accNow * dt;
+    g.vz += iz * accNow * dt;
+    const f = Math.exp(-FRICTION * dt); g.vx *= f; g.vz *= f;
+    if (g.isPlayer) {
+      g.knockT -= dt;
+      if (g.knockT <= 0) {
+        if (inp.t > 0.05) {
+          // Grip: bleed off sideways and backward drift relative to the stick, so turns and stops are quick.
+          const along = g.vx * inp.x + g.vz * inp.z;
+          const sx = g.vx - inp.x * along, sz = g.vz - inp.z * along;
+          const grip = 1 - Math.exp(-PLAYER_GRIP * dt);
+          g.vx -= sx * grip; g.vz -= sz * grip;
+          if (along < 0) { g.vx -= inp.x * along * grip; g.vz -= inp.z * along * grip; }
+        } else {
+          // Stick released: brake fairly fast instead of sliding.
+          const b = Math.exp(-PLAYER_BRAKE * dt); g.vx *= b; g.vz *= b;
+        }
+      }
+    }
+    const sp = Math.hypot(g.vx, g.vz);
+    if (sp > MAX_SPEED) { g.vx *= MAX_SPEED / sp; g.vz *= MAX_SPEED / sp; }
+    g.x += g.vx * dt; g.z += g.vz * dt;
+    // Skidding: just hit, braking against its own motion, sliding sideways or backwards.
+    g.skidT = (g.skidT || 0) - dt; g.faceLock = (g.faceLock || 0) - dt; g.noSave = (g.noSave || 0) - dt;
+    let skid = g.skidT > 0 && sp > 1.5;
+    if (!skid && sp > 3) {
+      const ux = g.vx / sp, uz = g.vz / sp, fx = Math.sin(g.face), fz = Math.cos(g.face);
+      if (inp.t > 0.1 && inp.x * ux + inp.z * uz < -0.3) skid = true;
+      if (g.ai && g.ai.mode === 'edgebrake') skid = true;
+      if (g.edgeSaving) skid = true;
+      if (Math.abs(g.vx * fz - g.vz * fx) > 3.5) skid = true;
+      if (fx * ux + fz * uz < -0.2) skid = true;
+      if (g.isPlayer && inp.t < 0.05 && sp > 6) skid = true;
+    }
+    g.skid = skid;
+    if (sp > 12) {
+      g.trail -= dt;
+      if (g.trail <= 0) { g.trail = 0.05; burst(g.x - g.vx / sp * g.r, 0.1, g.z - g.vz / sp * g.r, 1, 'dust', 0.3); }
+    }
+  }
+
+  // Sphere–sphere collisions: separate, then exchange momentum along the contact normal.
+  for (let i = 0; i < goats.length; i++) {
+    const A = goats[i]; if (!A.alive || A.falling || A.drop) continue;
+    for (let j = i + 1; j < goats.length; j++) {
+      const B = goats[j]; if (!B.alive || B.falling || B.drop) continue;
+      const dx = B.x - A.x, dz = B.z - A.z;
+      const d = Math.hypot(dx, dz), min = A.r + B.r;
+      if (d >= min || d < 1e-5) continue;
+      const nx = dx / d, nz = dz / d, tot = A.mass + B.mass, ov = min - d;
+      A.x -= nx * ov * B.mass / tot; A.z -= nz * ov * B.mass / tot;
+      B.x += nx * ov * A.mass / tot; B.z += nz * ov * A.mass / tot;
+      const rv = (B.vx - A.vx) * nx + (B.vz - A.vz) * nz;   // negative = closing
+      if (rv >= 0) continue;
+      // Teammates only bump softly into each other; full-strength hits come from the player.
+      const allies = !A.isPlayer && !B.isPlayer;
+      const jImp = allies
+        ? -(1 + ALLY_RESTITUTION) * rv / (1 / A.mass + 1 / B.mass)
+        : -(1 + RESTITUTION) * rv / (1 / A.mass + 1 / B.mass) * PUSH_BOOST;
+      // The player hits harder: the enemy side of the impulse is boosted, the player's is not.
+      const pushOn = o => TYPE_PARAMS[o.type] ? TYPE_PARAMS[o.type].pushTaken : o.type === 'linh' ? LINH_PUSH_TAKEN : o.type === 'lieu' ? LIEU_PUSH_TAKEN : PLAYER_PUSH;
+      // A charging Húc Liều hits far above its weight.
+      const rams = o => o.type === 'lieu' && (o.ai.mode === 'charge' || o.ai.mode === 'overshoot');
+      const kA = B.isPlayer ? pushOn(A) : rams(B) ? LIEU_PUSH_DEALT : 1;
+      const kB = A.isPlayer ? pushOn(B) : rams(A) ? LIEU_PUSH_DEALT : 1;
+      A.vx -= jImp * kA / A.mass * nx; A.vz -= jImp * kA / A.mass * nz;
+      B.vx += jImp * kB / B.mass * nx; B.vz += jImp * kB / B.mass * nz;
+      const closing = -rv;
+      if (closing > 3 && (A.hitCd <= 0 || B.hitCd <= 0)) {
+        A.hitCd = B.hitCd = 0.15;
+        // Both dig in and keep facing each other for a moment after the impact.
+        A.skidT = B.skidT = 0.5; A.faceLock = B.faceLock = 0.4;
+        // A goat shoved by the player can't save itself at the rim for a moment.
+        if (A.isPlayer) B.noSave = 0.9;
+        if (B.isPlayer) A.noSave = 0.9;
+        // Let a hit carry the player for a moment before grip kicks back in.
+        if (A.isPlayer) A.knockT = 0.35;
+        if (B.isPlayer) B.knockT = 0.35;
+        const cx = A.x + nx * A.r, cz = A.z + nz * A.r;
+        burst(cx, 0.8, cz, Math.min(16, 3 + closing * 0.8 | 0), 'hit', 0.6 + closing * 0.05);
+        const involved = A.isPlayer || B.isPlayer;
+        shake = Math.min(1.1, Math.max(shake, involved ? 0.15 + closing * 0.025 : 0.1));
+        thump(Math.min(1.2, (involved ? 0.4 : 0.2) + closing * 0.04));
+        if (involved) {
+          if (closing > 26) popText('CỘNG HƯỞNG!', cx, 2.4, cz, '#ff5d6c');
+          else if (closing > 15) popText('BỐP!', cx, 2.2, cz, '#f2c14e');
+        }
+      }
+    }
+  }
+
+  // Edge: a ball whose center leaves the top falls.
+  for (const g of goats) {
+    if (!g.alive || g.falling || g.drop) continue;
+    if (Math.hypot(g.x, g.z) > R) {
+      g.falling = true; g.vy = 1;
+      beeh(g.boss ? 0.6 : g.isPlayer ? 1.15 : 0.85 + Math.random() * 0.4);
+      burst(g.x, 0.2, g.z, 8, 'dust', 1);
+      if (!g.isPlayer) {
+        knocked++; runKnocked++;
+        popText(g.boss ? 'BEEEEEEH!!' : 'BEEEH!', g.x, 2, g.z);
+        renderPips();
+      }
+    }
+  }
+
+  // Win / lose
+  if (mode === 'test') {
+    if (state === 'play' && player && player.falling && respawnT <= 0) respawnT = 1.3;
+    if (respawnT > 0) { respawnT -= dt; if (respawnT <= 0 && state === 'play') respawnPlayer(); }
+    if (goats.some(g => !g.alive)) { goats = goats.filter(g => g.alive); renderPips(); }
+    if (state === 'intro') { introT -= dt; if (introT <= 0) state = 'play'; }
+    return;
+  }
+  if (state === 'play') {
+    if (player.falling) { state = 'over-wait'; endT = 1.4; }
+    else if (enemies().every(e => e.falling)) { state = 'clear-wait'; endT = 1.1; }
+  } else if (state === 'over-wait' || state === 'clear-wait') {
+    endT -= dt;
+    if (endT <= 0) {
+      if (state === 'clear-wait' && !player.falling) {
+        best = Math.min(LEVELS.length, Math.max(best, level + 1));
+        try { localStorage.setItem('sungchien-best', String(best)); } catch (e) {}
+        jingle(true); showOverlay('clear');
+      } else { jingle(false); showOverlay('over'); }
+    }
+  }
+  if (state === 'intro') { introT -= dt; if (introT <= 0) { state = 'play'; } }
+}
+
+// ---------- Visual sync ----------
+const TURN_RATE = 8;          // max goat turn speed, radians per second
+const camTarget = new THREE.Vector3(), camPos = new THREE.Vector3(0, 30, 30);
+const rollAxis = new THREE.Vector3(), rollQ = new THREE.Quaternion();
+let elapsed = 0;
+function sync(dt) {
+  elapsed += dt;
+  for (const g of goats) {
+    if (!g.alive) continue;
+    const m = g.mesh;
+    m.group.position.set(g.x, g.y, g.z);
+    // Face the direction of travel; trot faster the faster the goat moves.
+    const sp = Math.hypot(g.vx, g.vz);
+    // Face where the goat is trying to go, not where it is being shoved: a goat knocked
+    // backwards slides tail-first, still facing whoever hit it.
+    let faceGoal = null;
+    if (g.faceTo !== undefined && sp < 3) faceGoal = g.faceTo;
+    else if (g.faceLock > 0) faceGoal = null;
+    else if (g.inT > 0.35) {
+      // Braking input points backwards; don't spin round to face it, keep looking ahead.
+      const braking = sp > 0.8 && (g.inX * g.vx + g.inZ * g.vz) < -0.2 * sp;
+      if (!braking) faceGoal = Math.atan2(g.inX, g.inZ);
+    }
+    else if (sp > 1.2) {
+      const va = Math.atan2(g.vx, g.vz);
+      let dd = ((va - g.face + Math.PI) % (Math.PI * 2)) - Math.PI; if (dd < -Math.PI) dd += Math.PI * 2;
+      if (Math.abs(dd) < Math.PI / 2) faceGoal = va;
+    }
+    if (faceGoal !== null && !g.falling) {
+      // Low-pass the goal direction so small frame-to-frame wobbles in the AI's steering don't show.
+      const k = 1 - Math.exp(-7 * dt);
+      if (g.gx === undefined) { g.gx = Math.sin(faceGoal); g.gz = Math.cos(faceGoal); }
+      g.gx += (Math.sin(faceGoal) - g.gx) * k; g.gz += (Math.cos(faceGoal) - g.gz) * k;
+      faceGoal = Math.atan2(g.gx, g.gz);
+      let d = ((faceGoal - g.face + Math.PI) % (Math.PI * 2)) - Math.PI;
+      if (d < -Math.PI) d += Math.PI * 2;
+      // Ease in, but never turn faster than a goat plausibly could.
+      const turn = Math.max(-TURN_RATE * dt, Math.min(TURN_RATE * dt, d * Math.min(1, dt * 10)));
+      if (Math.abs(d) > 0.06) g.face += turn;
+    }
+    m.group.rotation.y = g.face;
+    if (g.skid && !g.falling && !g.drop && g.y === 0) skidTrail(g, sp, dt);
+    g.walk += dt * (2 + sp * 1.6);
+    const sw = g.falling ? 0.9 : Math.min(1, sp / 6) * 0.75;
+    m.legs.forEach((l, i) => { l.rotation.x = Math.sin(g.walk + (i === 0 || i === 3 ? 0 : Math.PI)) * sw; });
+    const fast = Math.min(1, sp / MAX_SPEED);
+    if (!g.falling) {
+      m.rig.rotation.x = 0.22 * fast;
+      m.rig.position.y = Math.abs(Math.sin(g.walk)) * 0.06 * Math.min(1, sp / 3);
+    }
+    m.head.rotation.x = 0.1 + 0.6 * fast;
+    if (m.aura) { m.aura.material.opacity = 0.22 + Math.sin(elapsed * 3) * 0.12; m.aura.rotation.z += dt * 0.5; }
+    if (g.ai && g.ai.mode === 'windup' && !g.falling) {
+      // Pawing: rear back, horns down, front legs scraping.
+      m.rig.rotation.x = -0.12;
+      m.head.rotation.x = 0.75;
+      m.legs[0].rotation.x = Math.sin(elapsed * 22) * 0.7;
+      m.legs[1].rotation.x = Math.sin(elapsed * 22 + Math.PI) * 0.7;
+    }
+    const base = g.baseScale || 1;
+    if (g.drop) {
+      m.legs.forEach((l, i) => { l.rotation.x = Math.sin(elapsed * 30 + i) * 0.9; });
+      m.group.scale.set(base * 0.85, base * 1.2, base * 0.85);
+    } else if (g.squash > 0) {
+      g.squash -= dt;
+      const k = Math.max(0, g.squash) / 0.35, wob = Math.sin((1 - k) * Math.PI * 3) * k;
+      m.group.scale.set(base * (1 + 0.3 * wob), base * (1 - 0.35 * wob), base * (1 + 0.3 * wob));
+    } else m.group.scale.setScalar(base);
+    if (g.marker) { g.marker.position.y = 3.1 + Math.sin(elapsed * 4) * 0.18; g.marker.rotation.y += dt * 2.5; g.marker.visible = !g.falling; }
+  }
+  if (player) {
+    const sp = Math.hypot(player.vx, player.vz), c = Math.min(1, sp / MAX_SPEED);
+    velPivot.position.set(player.x, 0.05, player.z);
+    velPivot.rotation.y = Math.atan2(player.vx, player.vz);
+    velArrow.position.z = 0;
+    velArrow.scale.set(0.8 + c * 0.6, 0.9 + c * 2.4, 1);
+    velArrow.position.set(0, 0, 0);
+    velArrow.translateY(player.r + 0.15);
+    velArrow.material.color.setHex(c > 0.9 ? 0xff5d6c : c > 0.5 ? 0xff8a4c : 0xf2c14e);
+    playerRing.material.opacity = 0.6 + Math.sin(elapsed * 4) * 0.25;
+    meterFill.style.width = (c * 100).toFixed(0) + '%';
+    meterSpeed.textContent = sp.toFixed(1) + ' m/s' + (c > 0.95 ? ' · TỐI ĐA' : '');
+  } else velPivot.visible = false;
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i]; p.life += dt;
+    p.vy -= 14 * dt; p.m.position.x += p.vx * dt; p.m.position.y = Math.max(0.05, p.m.position.y + p.vy * dt); p.m.position.z += p.vz * dt;
+    const k = 1 - p.life / p.max; p.m.scale.setScalar(Math.max(0.01, k)); p.m.rotation.x += dt * 6;
+    if (p.life >= p.max) { scene.remove(p.m); particles.splice(i, 1); }
+  }
+  for (const f of floaters) { f.rotation.y += f.userData.spin * dt; f.position.y = f.userData.base + Math.sin(elapsed * 0.6 + f.userData.bob) * 0.6; }
+  for (const c of clouds) { c.position.x += c.userData.speed * dt; if (c.position.x > 45) c.position.x = -45; }
+
+  // Camera
+  const aspect = camera.aspect;
+  const follow = player && !player.falling ? player : null;
+  const tx = follow ? follow.x * 0.5 : (state === 'menu' ? 0 : camTarget.x);
+  const tz = follow ? follow.z * 0.5 : (state === 'menu' ? 0 : camTarget.z);
+  const zoom = (R + 4) / 14 * Math.max(1, 0.8 / aspect);
+  let wantPos;
+  if (state === 'menu') {
+    const a = elapsed * 0.12;
+    wantPos = new THREE.Vector3(Math.sin(a) * 26, 15, Math.cos(a) * 26);
+    camTarget.lerp(new THREE.Vector3(0, -1, 0), 1 - Math.exp(-3 * dt));
+  } else {
+    wantPos = new THREE.Vector3(tx, 17 * zoom, tz + 15 * zoom);
+    camTarget.lerp(new THREE.Vector3(tx, 0, tz), 1 - Math.exp(-5 * dt));
+  }
+  camPos.lerp(wantPos, 1 - Math.exp(-(state === 'menu' ? 1.5 : 4) * dt));
+  camera.position.copy(camPos);
+  if (shake > 0) {
+    camera.position.x += (Math.random() - 0.5) * shake; camera.position.y += (Math.random() - 0.5) * shake;
+    shake = Math.max(0, shake - dt * 2.5);
+  }
+  camera.lookAt(camTarget);
+
+  updateFx(dt);
+  updateSkids(dt);
+  // Popups
+  for (let i = pops.length - 1; i >= 0; i--) {
+    const p = pops[i]; p.life += dt; p.pos.y += dt * 1.5;
+    tmpV.copy(p.pos).project(camera);
+    const x = (tmpV.x * 0.5 + 0.5) * innerWidth, y = (-tmpV.y * 0.5 + 0.5) * innerHeight;
+    p.el.style.left = x + 'px'; p.el.style.top = y + 'px';
+    p.el.style.opacity = String(Math.max(0, 1 - p.life / 1.1));
+    if (p.life > 1.1) { p.el.remove(); pops.splice(i, 1); }
+  }
+}
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w / h < 1 ? 58 : 45;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Menu scene: a few balls resting on the pillar.
+buildPillar(11);
+spawnGoat(false, -3, 1); spawnGoat(false, 3.5, -2); spawnGoat(false, 0.5, 3.5); spawnGoat(false, -1, -3.5);
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  update(dt);
+  sync(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
