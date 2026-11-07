@@ -128,14 +128,38 @@ kbd { font-family: var(--body); font-weight: 800; font-size: 11px; padding: 1px 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+// Show any runtime error on screen so problems can be reported instead of failing silently.
+function showGameError(msg) {
+  let el = document.getElementById('gameErr');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'gameErr';
+    el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:99;max-width:min(560px,90vw);background:#3a0d14;color:#ffd6db;border:1px solid #ff5d6c;border-radius:8px;padding:8px 10px;font:12px/1.4 system-ui,sans-serif;white-space:pre-wrap;';
+    document.body.appendChild(el);
+  }
+  if (el.textContent.split('\n').length < 4) el.textContent += (el.textContent ? '\n' : '') + 'Lỗi: ' + msg;
+}
+window.addEventListener('error', e => showGameError(e.message || String(e)));
+if (typeof THREE === 'undefined') {
+  document.getElementById('ovText').textContent = 'Không tải được thư viện 3D (three.js). Hãy kiểm tra kết nối mạng hoặc tắt trình chặn quảng cáo rồi tải lại trang.';
+  document.getElementById('ovBtn').disabled = true; document.getElementById('ovBtn2').disabled = true;
+}
+</script>
+<script>
 (() => {
 'use strict';
+if (typeof THREE === 'undefined') return;
 const $ = id => document.getElementById(id);
 const meterFill = $('meterFill'), meterSpeed = $('meterSpeed');
 
 // ---------- Renderer & scene ----------
 const canvas = $('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); }
+catch (err) {
+  $('ovText').textContent = 'Trình duyệt này không bật được WebGL nên không vẽ được 3D. Hãy thử Chrome hoặc Edge bản mới và bật tăng tốc phần cứng.';
+  $('ovBtn').disabled = true; $('ovBtn2').disabled = true;
+  return;
+}
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -791,6 +815,7 @@ const LEVELS = [
 ];
 function startLevel(n) {
   level = n; mode = 'campaign';
+  $('overlay').hidden = true;
   const L = LEVELS[n - 1];
   $('hudLevelLabel').textContent = 'Màn'; $('toMenu').hidden = false; $('spawnBtn').hidden = true;
   clearGoats();
@@ -1016,6 +1041,7 @@ function respawnPlayer() {
 }
 function startTest() {
   mode = 'test'; level = 1; respawnT = 0;
+  $('overlay').hidden = true;
   clearGoats();
   buildPillar(11);
   respawnPlayer();
@@ -1842,10 +1868,10 @@ spawnGoat(false, -3, 1); spawnGoat(false, 3.5, -2); spawnGoat(false, 0.5, 3.5); 
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.033, (now - last) / 1000); last = now;
-  update(dt);
-  sync(dt);
-  renderer.render(scene, camera);
   requestAnimationFrame(frame);
+  // One bad frame must not freeze the game: report it and keep going.
+  try { update(dt); sync(dt); renderer.render(scene, camera); }
+  catch (err) { if (!frame.errShown) { frame.errShown = true; showGameError(err && err.message || String(err)); console.error(err); } }
 }
 requestAnimationFrame(frame);
 })();
