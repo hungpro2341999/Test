@@ -75,6 +75,7 @@ kbd { font-family: var(--body); font-weight: 800; font-size: 11px; padding: 1px 
 .touch-hint { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: 50%; transform: translateX(-50%); font-size: 12.5px; color: var(--ink-dim); pointer-events: none; z-index: 5; white-space: nowrap; }
 #c { cursor: grab; }
 #c:active { cursor: grabbing; }
+body.playing #c { cursor: none; }
 .joy { position: fixed; left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; background: rgba(255,244,228,.10); border: 2px solid rgba(255,244,228,.35); z-index: 7; pointer-events: none; box-shadow: 0 0 0 6px rgba(36,24,56,.25); }
 .joy-knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: var(--horn); box-shadow: 0 4px 0 #a8701d, 0 6px 14px rgba(0,0,0,.35); }
 .spawn-btn { display: none; position: fixed; right: max(20px, calc(env(safe-area-inset-right, 0px) + 16px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 40px); width: 84px; height: 84px; border-radius: 50%; border: 0; background: var(--ember); color: #3a1a0c; font-family: var(--display); font-size: 18px; box-shadow: 0 5px 0 #a3461f; z-index: 8; touch-action: none; }
@@ -695,21 +696,27 @@ function joyShow() {
 // Pointer lock: during play the mouse is captured inside the game area and the cursor is hidden.
 // Mouse movement then tilts an invisible stick: the offset from where the lock started is the push.
 const LOCK_RADIUS = 90;
-let locked = false, lockJoy = { dx: 0, dy: 0 }, lockHeld = false;
-function isTouchUi() { return document.body.classList.contains('is-touch'); }
+let locked = false, lockJoy = { dx: 0, dy: 0 }, lockHeld = false, lockFails = 0;
+// Pointer lock is a bonus: if the browser refuses it, the drag joystick still works.
 function requestLock() {
-  if (isTouchUi() || locked || !canvas.requestPointerLock) return;
-  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (err) {}
+  if (locked || lockFails >= 3 || !canvas.requestPointerLock) return;
+  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => { lockFails++; updateHint(); }); }
+  catch (err) { lockFails++; }
 }
+document.addEventListener('pointerlockerror', () => { lockFails++; updateHint(); });
+// Hide the cursor over the arena while playing, whether or not the lock is active.
+function setPlaying(on) { document.body.classList.toggle('playing', on); }
 function releaseLock() { if (locked && document.exitPointerLock) document.exitPointerLock(); }
 function updateHint() {
   $('hint').textContent = (typeof mode !== 'undefined' && mode === 'test' ? '1 Lính · 2 Húc Liều · 3 Đá Tảng · 4 Lanh · 5 Rình · 6 Bầy · 7 Đầu Đàn · ' : '') + (locked
     ? 'Chuột đã khóa trong vùng chơi · giữ chuột trái và rê để đẩy, thả ra để dừng · Esc để mở khóa'
-    : 'Click vào màn hình để khóa chuột · hoặc nhấn giữ rồi kéo như cần điều khiển');
+    : 'Giữ chuột trái và rê để di chuyển, thả ra để dừng');
 }
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
-  lockJoy = { dx: 0, dy: 0 }; lockHeld = false;
+  // If the button is already held when the lock kicks in, carry the drag straight over.
+  lockHeld = locked && joy.id !== null;
+  lockJoy = lockHeld ? { dx: joy.dx, dy: joy.dy } : { dx: 0, dy: 0 };
   if (locked) joyEnd();
   updateHint();
 });
@@ -731,12 +738,14 @@ document.addEventListener('mousemove', e => {
 });
 canvas.addEventListener('pointerdown', e => {
   if (locked) return;
-  if (e.pointerType === 'mouse' && (state === 'play' || state === 'intro')) { requestLock(); return; }
-  if (joy.id !== null) return;
-  joy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 };
-  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-  audio();
-  if (state === 'play' || state === 'intro') joyShow();
+  if (joy.id === null) {
+    // Start the drag joystick right away so movement never depends on pointer lock.
+    joy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 };
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    audio();
+    if (state === 'play' || state === 'intro') joyShow();
+  }
+  if (e.pointerType === 'mouse' && (state === 'play' || state === 'intro')) requestLock();
 });
 canvas.addEventListener('pointermove', e => {
   if (e.pointerId !== joy.id) return;
@@ -817,7 +826,7 @@ const LEVELS = [
 ];
 function startLevel(n) {
   level = n; mode = 'campaign';
-  $('overlay').hidden = true;
+  $('overlay').hidden = true; setPlaying(true);
   const L = LEVELS[n - 1];
   $('hudLevelLabel').textContent = 'Màn'; $('toMenu').hidden = false; $('spawnBtn').hidden = true;
   clearGoats();
@@ -885,7 +894,7 @@ function showBanner(text, sub) {
   bannerTimer = setTimeout(() => { b.hidden = true; }, sub ? 1900 : 1100);
 }
 function showOverlay(kind) {
-  releaseLock();
+  releaseLock(); setPlaying(false);
   $('hud').hidden = true; $('hint').hidden = true; $('touchUi').hidden = true; $('spawnBtn').hidden = true;
   const ov = $('overlay'); ov.hidden = false;
   const stats = $('ovStats');
@@ -1043,7 +1052,7 @@ function respawnPlayer() {
 }
 function startTest() {
   mode = 'test'; level = 1; respawnT = 0;
-  $('overlay').hidden = true;
+  $('overlay').hidden = true; setPlaying(true);
   clearGoats();
   buildPillar(11);
   respawnPlayer();
@@ -1063,7 +1072,7 @@ function startTest() {
   renderPips();
 }
 function showMenu() {
-  releaseLock();
+  releaseLock(); setPlaying(false);
   mode = 'menu'; state = 'menu';
   $('hud').hidden = true; $('hint').hidden = true; $('touchUi').hidden = true; $('spawnBtn').hidden = true;
   $('overlay').hidden = false;
